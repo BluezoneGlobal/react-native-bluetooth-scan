@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Bluezone</string>
+    <string name="notification_title">Bluezone</string>
+    <string name="notification_content">Chưa thấy F0 nào tiếp xúc gần với bạn !</string>
+<!--    <string name="notification_title">Bluezone: Tx gần 6 / 10 Tx</string>-->
+<!--    <string name="notification_content">Chưa thấy F0 nào tiếp xúc gần với bạn !</string>-->
+</resources>

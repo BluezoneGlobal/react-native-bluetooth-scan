@@ -1,0 +1,28 @@
+apply plugin: 'com.android.library'
+if (project.hasProperty('POM_ARTIFACT_ID')) {
+  apply from: 'gradle-maven-push.gradle'
+}
+
+def safeExtGet(prop, fallback) {
+  rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback
+}
+
+android {
+  compileSdkVersion safeExtGet('compileSdkVersion', 28)
+
+  defaultConfig {
+    minSdkVersion safeExtGet('minSdkVersion', 21)
+    targetSdkVersion safeExtGet('targetSdkVersion', 27)
+  }
+}
+
+dependencies {
+  compileOnly('com.facebook.react:react-native:+') {
+    exclude group: 'com.android.support'
+  }
+  implementation "androidx.appcompat:appcompat:1.0.0"
+  implementation 'com.android.support:multidex:1.0.1'
+  implementation 'com.jakewharton.timber:timber:4.5.1'
+  implementation 'com.squareup.okhttp3:okhttp:3.12.1'
+  implementation 'com.google.code.gson:gson:2.7'
+}
