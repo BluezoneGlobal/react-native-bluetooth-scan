@@ -20,9 +20,6 @@ import androidx.annotation.RequiresApi;
 
 import org.json.JSONException;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public class TraceCovidModule extends ReactContextBaseJavaModule {
     private static ReactApplicationContext reactContext;
     private Callback onScanResult;
@@ -101,13 +98,6 @@ public class TraceCovidModule extends ReactContextBaseJavaModule {
     public void generatorBluezoneId(Promise promise) {
         String bluezoneId = BluezonerIdGenerator.createBluezonerId(6);
         promise.resolve(bluezoneId);
-    }
-
-    @Override
-    public Map<String, Object> getConstants() {
-        final Map<String, Object> constants = new HashMap<>();
-        constants.put("NOTIFY_SERVICE_NUMBER", 114);
-        return constants;
     }
 
     public void emitEvent(String eventName, WritableMap params) {

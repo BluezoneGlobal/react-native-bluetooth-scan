@@ -21,11 +21,13 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.BatteryManager;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.SystemClock;
+import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -38,10 +40,11 @@ import com.scan.database.CacheDatabaseHelper;
 import com.scan.model.ScanConfig;
 import com.scan.preference.AppPreferenceManager;
 
+import org.json.JSONException;
+
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Class service thực hiện viẹc phát và bắt các kết nối
@@ -76,6 +79,7 @@ public class ServiceTraceCovid extends Service {
     // Services callback
     private BatteryReceiver mReceiverBattery;
     private BluetoothChangedReceiver mReceiverBluetoothChanged;
+    private LocationChangedReceiver mReceiverLocationChanged;
 
     // Status Scan
     public static final int STATUS_SCAN_FINISH = 0;
@@ -177,7 +181,7 @@ public class ServiceTraceCovid extends Service {
         initScheduler(intent);
 
         // Check
-        if (!AppUtils.enableBluetooth()) {
+        if (AppUtils.enableBluetooth()) {
             // Start tat ca
             startAll();
         }
@@ -204,6 +208,7 @@ public class ServiceTraceCovid extends Service {
         mScanConfigBroadcastBle = AppUtils.getConfigScan(reactContext, AppPreferenceManager.PreferenceConstants.CONFIG_BROADCAST_BLE);
         mScanConfigDevices = AppUtils.getConfigScan(reactContext, AppPreferenceManager.PreferenceConstants.CONFIG_SCAN_DEVICES);
 
+        // Log
         writeLog("mScanConfigBle: " + mScanConfigBle.getDuration() + ":" + mScanConfigBle.getInterval());
         writeLog("mScanConfigBroadcastBle: " + mScanConfigBroadcastBle.getDuration() + ":" + mScanConfigBroadcastBle.getInterval());
         writeLog("mScanConfigDevices: " + mScanConfigDevices.getDuration() + ":" + mScanConfigDevices.getInterval());
@@ -528,7 +533,7 @@ public class ServiceTraceCovid extends Service {
 
                 // ghi ten vao manufacture
                 builder.addManufacturerData(AppConstants.BLE_ID,
-                        AppPreferenceManager.getInstance(getApplicationContext()).getPhoneNumber().getBytes(Charset.forName("UTF-8")));
+                        AppPreferenceManager.getInstance(getApplicationContext()).getBlid().getBytes(Charset.forName("UTF-8")));
                 builder.addServiceUuid(AppUtils.BLE_UUID_ANDROID);
 
                 // Callback start
@@ -602,9 +607,6 @@ public class ServiceTraceCovid extends Service {
                         // Status
                         mStatusScanBle = STATUS_SCANNING;
 
-                        // log
-                        // writeLog("startScanBle : onScanResult");
-
                         try {
                             // Check du lieu
                             if (result != null) {
@@ -677,28 +679,17 @@ public class ServiceTraceCovid extends Service {
 
                                 // check
                                 if (!TextUtils.isEmpty(userId)) {
-                                    // Log
-                                    // writeLog("startScanBle : data = " + userId);
-
                                     // Insert db
-                                    AppDatabaseHelper.getInstance(getApplicationContext()).insertUserIdTrace(userId, result.getRssi());
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                        AppDatabaseHelper.getInstance(getApplicationContext()).insertUserIdTrace(userId, result.getRssi(), result.getTxPower());
+                                    } else {
+                                        AppDatabaseHelper.getInstance(getApplicationContext()).insertUserIdTrace(userId, result.getRssi(), 0);
+                                    }
 
+                                    // Notify
                                     moduleManager.emit(userId, "", "", result.getRssi(), platform, typeScan);
                                 }
                             }
-
-//                            else {
-//                                Log.e("Khanhvd", "other");
-//                                byte[] data = result.getScanRecord().getManufacturerSpecificData(AppConstants.DEFAUT_MANUFACTOR_IOS);
-//                                String log = "";
-//                                // Check
-//                                if (data != null && data.length > 0) {
-//                                    // Lay ten tu Manufacturer
-//                                    log = new String(data, Charset.forName("UTF-8"));
-//                                }
-//
-//                                Log.e("Khanhvd", log);
-//                            }
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -881,10 +872,8 @@ public class ServiceTraceCovid extends Service {
 
                         // check
                         if(!TextUtils.isEmpty(userId)) {
-                            // Log
-                            writeLog("Devices - BLE: " + userId + " - RSSI: " + rssi);
-
-                            AppDatabaseHelper.getInstance(getApplicationContext()).insertUserIdTrace(userId, rssi);
+                            // Insert db
+                            AppDatabaseHelper.getInstance(getApplicationContext()).insertUserIdTrace(userId, rssi, 0);
 
                             address = "";
                             userIdRN = userId;
@@ -895,19 +884,13 @@ public class ServiceTraceCovid extends Service {
                     } else if (bluetoothDevice.getType() == BluetoothDevice.DEVICE_TYPE_CLASSIC && !TextUtils.isEmpty(address)) {
                         // Check rong
                         if (TextUtils.isEmpty(name)) {
-                            // Log
-                            writeLog("Devices - Device - Noname: " + address  + " - RSSI: " + rssi);
-
-                            // Gi DB
-                            AppDatabaseHelper.getInstance(getApplicationContext()).insertMacIdTrace(address, "", rssi);
+                            // Insert db
+                            AppDatabaseHelper.getInstance(getApplicationContext()).insertMacIdTrace(address, "", rssi, 0);
                             nameRN = "No name";
                             type = 5;
                         } else {
-                            // Log
-                            writeLog("Devices - Device: " + name + " : " + address  + " - RSSI: " + rssi);
-
-                            // Ghi DB
-                            AppDatabaseHelper.getInstance(getApplicationContext()).insertMacIdTrace(address, name, rssi);
+                            // Insert db
+                            AppDatabaseHelper.getInstance(getApplicationContext()).insertMacIdTrace(address, name, rssi, 0);
                             nameRN = name;
                             type = 6;
                         }
@@ -953,6 +936,15 @@ public class ServiceTraceCovid extends Service {
                 intentFilter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
                 registerReceiver(mReceiverBluetoothChanged, intentFilter);
             }
+
+            // -----------------------------------------------------------
+            if (mReceiverLocationChanged == null) {
+                mReceiverLocationChanged = new LocationChangedReceiver();
+                IntentFilter intentFilter = new IntentFilter();
+//                intentFilter.addAction(ACTION_RECEIVER_STOP);
+                intentFilter.addAction(LocationManager.MODE_CHANGED_ACTION);
+                registerReceiver(mReceiverLocationChanged, intentFilter);
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -975,6 +967,7 @@ public class ServiceTraceCovid extends Service {
 
     // Class
     class BluetoothChangedReceiver extends BroadcastReceiver {
+        @RequiresApi(api = Build.VERSION_CODES.O)
         @Override
         public void onReceive(Context context, Intent intent) {
             // check
@@ -994,13 +987,23 @@ public class ServiceTraceCovid extends Service {
                                 // Log
                                 writeLog("Bluetooth : OFF");
 
-                                // Timer enable bluetooth
-                                callAlarmTimer(TYPE_SCHEDULER_ENABLE_BLUETOOTH);
+                                // Timer enable bluetooth => Not auto enable bluetooth
+                                // callAlarmTimer(TYPE_SCHEDULER_ENABLE_BLUETOOTH);
+
+                                // App luncher
+                                if(mModeScan != MODE_SCAN_FULL) {
+                                    // Create notify bluetooth
+                                    try {
+                                        AppUtils.createNotifyRequestBluetooth(getApplicationContext());
+                                    } catch (JSONException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
                                 break;
                             case BluetoothAdapter.STATE_TURNING_OFF:
                                 // Log
                                 writeLog("Bluetooth : OFF ing");
-                                // Stop tat ca
+
                                 // init scan
                                 initStatus();
 
@@ -1010,6 +1013,11 @@ public class ServiceTraceCovid extends Service {
                             case BluetoothAdapter.STATE_ON:
                                 // Log
                                 writeLog("Bluetooth : ON");
+                                try {
+                                    AppUtils.clearNotifyRequestBluetooth(getApplicationContext());
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
 
                                 // init bluetooth
                                 initBluetooth();
@@ -1017,8 +1025,8 @@ public class ServiceTraceCovid extends Service {
                                 // Start service
                                 startAll();
                                 break;
-                            case BluetoothAdapter.STATE_TURNING_ON:
-                                break;
+//                            case BluetoothAdapter.STATE_TURNING_ON:
+//                                break;
                         }
                     }
                 }
@@ -1132,6 +1140,57 @@ public class ServiceTraceCovid extends Service {
         }
     }
 
+    // Receiver
+    class LocationChangedReceiver extends BroadcastReceiver {
+        public boolean isLocationEnabled(Context context) {
+            int locationMode = 0;
+            String locationProviders;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT){
+                try {
+                    locationMode = Settings.Secure.getInt(context.getContentResolver(), Settings.Secure.LOCATION_MODE);
+
+                } catch (Settings.SettingNotFoundException e) {
+                    e.printStackTrace();
+                    return false;
+                }
+
+                return locationMode != Settings.Secure.LOCATION_MODE_OFF;
+
+            }else{
+                locationProviders = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.LOCATION_PROVIDERS_ALLOWED);
+                return !TextUtils.isEmpty(locationProviders);
+            }
+        }
+        @RequiresApi(api = Build.VERSION_CODES.P)
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // check
+            if (intent != null) {
+                String action = intent.getAction();
+                if (action.equals(LocationManager.MODE_CHANGED_ACTION)) {
+                    LocationManager locationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
+                    boolean status = this.isLocationEnabled(getApplicationContext());
+                    if (status) {
+                        if(mModeScan != MODE_SCAN_FULL) {
+                            // Create notify bluetooth
+                            try {
+                                AppUtils.createNotifyRequestLocation(getApplicationContext());
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    } else {
+                        try {
+                            AppUtils.clearNotifyRequestLocation(getApplicationContext());
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     /**
      * Asynctask connect
      */
@@ -1168,7 +1227,7 @@ public class ServiceTraceCovid extends Service {
                         } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
 
                             // Log
-                            writeLog("Disconnected from GATT server.");
+                            writeLog("Disconnected Gatt server.");
                         }
                     }
 
@@ -1197,7 +1256,7 @@ public class ServiceTraceCovid extends Service {
                             if (!TextUtils.isEmpty(blid)) {
 
                                 // Insert db
-                                AppDatabaseHelper.getInstance(getApplicationContext()).insertUserIdTrace(blid, -70);
+                                AppDatabaseHelper.getInstance(getApplicationContext()).insertUserIdTrace(blid, -70, 0);
 
                                 // Ghi ban len he thong
                                 moduleManager.emit(blid, "", "", -70, "ios", 1);
@@ -1245,16 +1304,10 @@ public class ServiceTraceCovid extends Service {
         }
 
         /**
-         * dannvb: Lay list gattService
+         * Get list gattService
          * @param gattServices
          */
         private void getGattService(List<BluetoothGattService> gattServices) {
-            // Check init
-            if (mBluetoothAdapter == null || mBluetoothGatt == null) {
-                writeLog("BluetoothAdapter not initialized");
-                return;
-            }
-
             // Check init
             if (mBluetoothAdapter == null || mBluetoothGatt == null) {
                 writeLog("BluetoothAdapter not initialized");
@@ -1279,36 +1332,9 @@ public class ServiceTraceCovid extends Service {
 
                         // Check
                         if (!TextUtils.isEmpty(uuid) && uuid.equals(AppConstants.BLE_UUID_CHARECTIC.toLowerCase())) {
-//                        // Check service
-//                        BluetoothGattService mCustomService = mBluetoothGatt.getService(UUID.fromString(AppConstants.BLE_UUID_IOS));
-//
-//                        // Check service BLE
-//                        if (mCustomService == null){
-//                            writeLog("Custom BLE Service not found");
-//                            return;
-//                        }
                             try {
                                 // Read characteris
                                 mBluetoothGatt.readCharacteristic(gattCharacteristic);
-
-//                                // Read Blid
-//                                String blid = AppUtils.convertUserId(readValuesCharactic(gattCharacteristic));
-//
-//                                // check
-//                                if (!TextUtils.isEmpty(blid)) {
-//
-//                                    // Insert db
-//                                    AppDatabaseHelper.getInstance(getApplicationContext()).insertUserIdTrace(blid, mRssiConnect);
-//
-//                                    // Ghi ban len he thong
-//                                    moduleManager.emit(blid, "", "", mRssiConnect, "ios", 1);
-//
-//                                    // insert cache
-//                                    // CacheDatabaseHelper.getInstance(getApplicationContext()).insertConnected(blid, gattService.get);
-//
-//                                    // out
-//                                    mIsConnect = false;
-//                                }
                             } catch (Exception e) {
                                 e.printStackTrace();
                             }
@@ -1329,15 +1355,7 @@ public class ServiceTraceCovid extends Service {
 
             // Check
             if (data != null && data.length > 0) {
-                //
-//                final StringBuilder stringBuilder = new StringBuilder(data.length);
-//
-//                // For
-//                for (byte byteChar : data) {
-//                    stringBuilder.append(String.format("%02X ", byteChar));
-//                }
-//            String s =  new String(data) + "\n" + stringBuilder.toString();
-//            Log.d("dannvb read values", s);
+
                 return new String(data);
             }
 

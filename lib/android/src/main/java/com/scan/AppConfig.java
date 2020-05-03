@@ -71,4 +71,56 @@ public class AppConfig {
             preferenceManager.setConfigEnableBluetoothBatteryLevel(batteryLevelEnableBluetooth);
         }
     }
+
+    public static void setNotifyRequestBluContent(
+            Context context,
+            String itemRepeat,
+            String bigTextVi,
+            String bigTextEn,
+            String subTextVi,
+            String subTextEn,
+            String titleVi,
+            String titleEn,
+            String messageVi,
+            String messageEn
+    ) {
+        AppPreferenceManager preferenceManager = AppPreferenceManager.getInstance(context);
+        preferenceManager.setNotifyRequestBlu(
+                bigTextVi,
+                bigTextEn,
+                subTextVi,
+                subTextEn,
+                titleVi,
+                titleEn,
+                messageVi,
+                messageEn,
+                itemRepeat
+        );
+    }
+
+    public static void setNotifyRequestLocationContent(
+            Context context,
+            String itemRepeat,
+            String bigTextVi,
+            String bigTextEn,
+            String subTextVi,
+            String subTextEn,
+            String titleVi,
+            String titleEn,
+            String messageVi,
+            String messageEn
+    ) {
+        AppPreferenceManager preferenceManager = AppPreferenceManager.getInstance(context);
+        preferenceManager.setNotifyRequestLocation(
+                bigTextVi,
+                bigTextEn,
+                subTextVi,
+                subTextEn,
+                titleVi,
+                titleEn,
+                messageVi,
+                messageEn,
+                itemRepeat
+        );
+    }
 }

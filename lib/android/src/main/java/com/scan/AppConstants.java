@@ -25,7 +25,7 @@ public class AppConstants {
         public static final String CONFIG_FILE_VALUE_OK = "1";
 
         // Cau hinh log file
-        public static final boolean IS_CONFIG_LOG_FILE = true;
+        public static final boolean IS_CONFIG_LOG_FILE = false;
 
         // Cau hinh log battery
         public static final boolean IS_CONFIG_LOG_BATTERY = false;
@@ -75,6 +75,9 @@ public class AppConstants {
     public static final String NOTIFICATION_CHANNEL_NAME = "Bluezone channel";
     public static final int NOTIFICATION_CHANNEL_ID_CODE = 42020;
     public static final int NOTIFICATION_SERVICE_BLUE_ZONE_ID = 2020;
+    public static final int NOTIFICATION_BLUETOOTH_BLUE_ZONE_ID = 2021;
+    public static final int NOTIFICATION_LOCATION_BLUE_ZONE_ID = 2022;
+    public static final int NOTIFICATION_PERMISSON_BLUE_ZONE_ID = 2023;
 
     // File
     public static final String PATH_APP = "/Bluezone/";
@@ -83,7 +86,6 @@ public class AppConstants {
 
     // UerID length
     public static final int USERID_LENGTH = 6;
-    public static final int NOTIFY_SERVICE_NUMBER = 114;
 
     // Backup
     public static class Backup {
@@ -91,6 +93,7 @@ public class AppConstants {
         public static final String DATABASE_NAME = "app_db.db";         // File name DB trong điện thoại
         public static final String FILE_NAME_DB = ".app_backup.db";      // File name DB ngoài thẻ nhớ
         public static final String FILE_NAME_USER_ID = ".userid.txt";    // File name backup UserID
+        public static final String FILE_NAME_DATA = "data_trace.txt";    // Data trace put server
         public static final String KEY_USER_ID = "user_id";              // Key backup UserID
         public static final int DATA_USER_ID_COUNT = 2;
         public static final int DATA_USER_ID_INDEX_KEY = 0;

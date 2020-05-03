@@ -2,6 +2,9 @@ package com.scan.preference;
 
 import android.content.Context;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * class dung de luu tru cac du lieu can thiet nhat cua ung dung duoc goi chung boi ta cac module.
  */
@@ -43,18 +46,18 @@ public class AppPreferenceManager extends AbstractPreferenceManager {
     }
 
     /**
-     * Set token
-     * @param phone
+     * Set blid
+     * @param blid
      */
-    public void setPhoneNumber(String phone) {
-        putString(PreferenceConstants.USER_ID, phone);
+    public void setBlid(String blid) {
+        putString(PreferenceConstants.BLID, blid);
     }
 
     /**
-     * Set token
+     * Get blid
      */
-    public String getPhoneNumber() {
-        return getString(PreferenceConstants.USER_ID, "Bluezoner");
+    public String getBlid() {
+        return getString(PreferenceConstants.BLID, "Bluezoner");
     }
 
     /**
@@ -267,10 +270,82 @@ public class AppPreferenceManager extends AbstractPreferenceManager {
         return getString(PreferenceConstants.LANGUAGE, "vi");
     }
 
+    public void setNotifyRequestBlu(
+            String bigTextVi,
+            String bigTextEn,
+            String subTextVi,
+            String subTextEn,
+            String titleVi,
+            String titleEn,
+            String messageVi,
+            String messageEn,
+            String itemRepeat
+    ) {
+        putString(PreferenceConstants.NOTIFICATION_BLUETOOTH_BIG_TEXT_VI, bigTextVi);
+        putString(PreferenceConstants.NOTIFICATION_BLUETOOTH_BIG_TEXT_EN, bigTextEn);
+        putString(PreferenceConstants.NOTIFICATION_BLUETOOTH_SUB_TEXT_VI, subTextVi);
+        putString(PreferenceConstants.NOTIFICATION_BLUETOOTH_SUB_TEXT_EN, subTextEn);
+        putString(PreferenceConstants.NOTIFICATION_BLUETOOTH_TITLE_VI, titleVi);
+        putString(PreferenceConstants.NOTIFICATION_BLUETOOTH_TITLE_EN, titleEn);
+        putString(PreferenceConstants.NOTIFICATION_BLUETOOTH_MESSAGE_VI, messageVi);
+        putString(PreferenceConstants.NOTIFICATION_BLUETOOTH_MESSAGE_EN, messageEn);
+        putString(PreferenceConstants.NOTIFICATION_BLUETOOTH_REPEAT, itemRepeat);
+    }
+
+    public Map<String, String> getNotifyRequestBlue (String language) {
+        Map<String, String> result = new HashMap<>();
+        result.put("itemRepeat", getString(PreferenceConstants.NOTIFICATION_BLUETOOTH_REPEAT, ""));
+        result.put("bigText", getString(PreferenceConstants.NOTIFICATION_BLUETOOTH_BIG_TEXT_VI, "bigTextVi"));
+        result.put("bigText_en", getString(PreferenceConstants.NOTIFICATION_BLUETOOTH_BIG_TEXT_EN, "bigTextEn"));
+        result.put("subText", getString(PreferenceConstants.NOTIFICATION_BLUETOOTH_SUB_TEXT_VI, "subTextVi"));
+        result.put("subText_en", getString(PreferenceConstants.NOTIFICATION_BLUETOOTH_SUB_TEXT_EN, "subTextEn"));
+        result.put("title", getString(PreferenceConstants.NOTIFICATION_BLUETOOTH_TITLE_VI, "titleVi"));
+        result.put("title_en", getString(PreferenceConstants.NOTIFICATION_BLUETOOTH_TITLE_EN, "titleEn"));
+        result.put("message", getString(PreferenceConstants.NOTIFICATION_BLUETOOTH_MESSAGE_VI, "messageVi"));
+        result.put("message_en", getString(PreferenceConstants.NOTIFICATION_BLUETOOTH_MESSAGE_EN, "messageEn"));
+        return result;
+    }
+
+    public void setNotifyRequestLocation(
+            String bigTextVi,
+            String bigTextEn,
+            String subTextVi,
+            String subTextEn,
+            String titleVi,
+            String titleEn,
+            String messageVi,
+            String messageEn,
+            String itemRepeat
+    ) {
+        putString(PreferenceConstants.NOTIFICATION_LOCATION_BIG_TEXT_VI, bigTextVi);
+        putString(PreferenceConstants.NOTIFICATION_LOCATION_BIG_TEXT_EN, bigTextEn);
+        putString(PreferenceConstants.NOTIFICATION_LOCATION_SUB_TEXT_VI, subTextVi);
+        putString(PreferenceConstants.NOTIFICATION_LOCATION_SUB_TEXT_EN, subTextEn);
+        putString(PreferenceConstants.NOTIFICATION_LOCATION_TITLE_VI, titleVi);
+        putString(PreferenceConstants.NOTIFICATION_LOCATION_TITLE_EN, titleEn);
+        putString(PreferenceConstants.NOTIFICATION_LOCATION_MESSAGE_VI, messageVi);
+        putString(PreferenceConstants.NOTIFICATION_LOCATION_MESSAGE_EN, messageEn);
+        putString(PreferenceConstants.NOTIFICATION_LOCATION_REPEAT, itemRepeat);
+    }
+
+    public Map<String, String> getNotifyRequestLocation (String language) {
+        Map<String, String> result = new HashMap<>();
+        result.put("itemRepeat", getString(PreferenceConstants.NOTIFICATION_LOCATION_REPEAT, ""));
+        result.put("bigText", getString(PreferenceConstants.NOTIFICATION_LOCATION_BIG_TEXT_VI, "bigTextVi"));
+        result.put("bigText_en", getString(PreferenceConstants.NOTIFICATION_LOCATION_BIG_TEXT_EN, "bigTextEn"));
+        result.put("subText", getString(PreferenceConstants.NOTIFICATION_LOCATION_SUB_TEXT_VI, "subTextVi"));
+        result.put("subText_en", getString(PreferenceConstants.NOTIFICATION_LOCATION_SUB_TEXT_EN, "subTextEn"));
+        result.put("title", getString(PreferenceConstants.NOTIFICATION_LOCATION_TITLE_VI, "titleVi"));
+        result.put("title_en", getString(PreferenceConstants.NOTIFICATION_LOCATION_TITLE_EN, "titleEn"));
+        result.put("message", getString(PreferenceConstants.NOTIFICATION_LOCATION_MESSAGE_VI, "messageVi"));
+        result.put("message_en", getString(PreferenceConstants.NOTIFICATION_LOCATION_MESSAGE_EN, "messageEn"));
+        return result;
+    }
+
     // Constant pre
     public static class PreferenceConstants {
         // Name
-        public static final String USER_ID = "user_id";
+        public static final String BLID = "user_id";
         public static final String LANGUAGE = "app_language";
 
         // config
@@ -294,5 +369,26 @@ public class AppPreferenceManager extends AbstractPreferenceManager {
 
         // Time last backup
         public static final String TIME_LAST_BACKUP = "time_last_backup";
+
+        // Notify Content
+        public static final String NOTIFICATION_BLUETOOTH_BIG_TEXT_VI = "notification_bluetooth_big_text_vi";
+        public static final String NOTIFICATION_BLUETOOTH_BIG_TEXT_EN = "notification_bluetooth_big_text_en";
+        public static final String NOTIFICATION_BLUETOOTH_SUB_TEXT_VI = "notification_bluetooth_sub_text_vi";
+        public static final String NOTIFICATION_BLUETOOTH_SUB_TEXT_EN = "notification_bluetooth_sub_text_en";
+        public static final String NOTIFICATION_BLUETOOTH_TITLE_VI = "notification_bluetooth_title_text_vi";
+        public static final String NOTIFICATION_BLUETOOTH_TITLE_EN = "notification_bluetooth_title_text_en";
+        public static final String NOTIFICATION_BLUETOOTH_MESSAGE_VI = "notification_bluetooth_message_vi";
+        public static final String NOTIFICATION_BLUETOOTH_MESSAGE_EN = "notification_bluetooth_message_en";
+        public static final String NOTIFICATION_BLUETOOTH_REPEAT = "notification_bluetooth_repeat";
+
+        public static final String NOTIFICATION_LOCATION_BIG_TEXT_VI = "notification_location_big_text_vi";
+        public static final String NOTIFICATION_LOCATION_BIG_TEXT_EN = "notification_location_big_text_en";
+        public static final String NOTIFICATION_LOCATION_SUB_TEXT_VI = "notification_location_sub_text_vi";
+        public static final String NOTIFICATION_LOCATION_SUB_TEXT_EN = "notification_location_sub_text_en";
+        public static final String NOTIFICATION_LOCATION_TITLE_VI = "notification_location_title_text_vi";
+        public static final String NOTIFICATION_LOCATION_TITLE_EN = "notification_location_title_text_en";
+        public static final String NOTIFICATION_LOCATION_MESSAGE_VI = "notification_location_message_vi";
+        public static final String NOTIFICATION_LOCATION_MESSAGE_EN = "notification_location_message_en";
+        public static final String NOTIFICATION_LOCATION_REPEAT = "notification_location_repeat";
     }
 }

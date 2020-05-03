@@ -2,10 +2,13 @@ package com.scan.backup;
 
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.os.Environment;
+import android.text.TextUtils;
 
 import com.scan.AppConstants;
 import com.scan.AppUtils;
+import com.scan.database.AppDatabaseHelper;
 import com.scan.database.ExternalDatabaseHelper;
 import com.scan.preference.AppPreferenceManager;
 
@@ -20,10 +23,6 @@ import java.io.RandomAccessFile;
  * @author khanhxu
  */
 public class BackupUtils {
-
-    // Biến lưu lại thời gian gần nhất backup
-    public static long sLastTimeBackup = 0;
-
     /**
      * Get app root path
      */
@@ -305,5 +304,90 @@ public class BackupUtils {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Backup data file
+     * @param context
+     * @param listBlid
+     * @return
+     */
+    public static String backupFileData(Context context, String[] listBlid) {
+        String ret = "";
+
+        // Backup
+        File fileBackupDir = BackupUtils.getFileBackup(context);
+
+        // blid current
+        String blidCurrent = AppPreferenceManager.getInstance(context).getBlid();
+
+        // Check
+        if (fileBackupDir != null && !TextUtils.isEmpty(blidCurrent)) {
+            // doc
+            RandomAccessFile fi = null;
+            try {
+
+                // File db
+                File fileTrace = new File(Environment.getDataDirectory() + "/data/" +
+                        context.getPackageName(), AppConstants.Backup.FILE_NAME_DATA);
+
+                // delete old
+                if (fileTrace.exists()) {
+                    fileTrace.delete();
+                }
+
+                // create file
+                if (fileTrace.createNewFile()) {
+                    // Accessfile
+                    fi = new RandomAccessFile(fileTrace.getAbsolutePath(), "rw");
+
+                    // Get all cursor
+                    Cursor cursor = AppDatabaseHelper.getInstance(context).getCursorData(listBlid);
+
+                    // Check
+                    if (cursor != null) {
+                        // Read
+                        while (cursor.moveToNext()) {
+                            // Get info
+                            String blid = cursor.getString(AppDatabaseHelper.COLUMN_INDEX_BLID);
+                            String userId = cursor.getString(AppDatabaseHelper.COLUMN_INDEX_USER_ID);
+                            String macId = cursor.getString(AppDatabaseHelper.COLUMN_INDEX_MAC_ID);
+                            String devices = cursor.getString(AppDatabaseHelper.COLUMN_INDEX_DEVICES);
+
+                            // Data
+                            String retItem = (blid != null ? blid : blidCurrent) + "\t" +
+                                    (userId != null ? userId : "") + "\t" +
+                                    (macId != null ? macId : "") + "\t" +
+                                    (devices != null ? devices : "") + "\t" +
+                                    cursor.getInt(AppDatabaseHelper.COLUMN_INDEX_RSSI) + "\t" +
+                                    cursor.getInt(AppDatabaseHelper.COLUMN_INDEX_TX_POWER) + "\t" +
+                                    cursor.getInt(AppDatabaseHelper.COLUMN_INDEX_STATE) + "\t" +
+                                    cursor.getLong(AppDatabaseHelper.COLUMN_INDEX_TIME) +"\n";
+
+                            // Write data
+                            fi.write(retItem.getBytes());
+                        }
+
+                        // File backup
+                        ret = fileTrace.getAbsolutePath();
+
+                        // Close cusor
+                        cursor.close();
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                if (fi != null) {
+                    try {
+                        fi.close();
+                    } catch (IOException e) {
+
+                    }
+                }
+            }
+        }
+
+        return ret;
     }
 }

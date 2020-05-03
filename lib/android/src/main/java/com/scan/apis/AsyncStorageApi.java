@@ -31,7 +31,7 @@ public class AsyncStorageApi {
                 return null;
             }
         }
-        // TODO by CuongNT: Nen nem exception?
+        // TODO by Me: Exception?
         return null;
     }
 

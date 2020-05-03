@@ -134,6 +134,34 @@ public class TraceCovidModuleManager {
                 timeIntervalEnableBluetooth,
                 batteryLevelEnableBluetooth
         );
+
+        ReadableMap notifyRequestBluetooth = configs.hasKey("NotifyRequestBluetooth") ? configs.getMap("NotifyRequestBluetooth") : null;
+        if(notifyRequestBluetooth != null) {
+            String itemRepeat = notifyRequestBluetooth.hasKey("itemRepeat") ? notifyRequestBluetooth.getArray("itemRepeat").toString() : "";
+            String bigTextVi = notifyRequestBluetooth.hasKey("bigText") ? notifyRequestBluetooth.getString("bigText") : "";
+            String bigTextEn = notifyRequestBluetooth.hasKey("bigText_en") ? notifyRequestBluetooth.getString("bigText_en") : "";
+            String subTextVi = notifyRequestBluetooth.hasKey("subText") ? notifyRequestBluetooth.getString("subText") : "";
+            String subTextEn = notifyRequestBluetooth.hasKey("subText_en") ? notifyRequestBluetooth.getString("subText_en") : "";
+            String titleVi = notifyRequestBluetooth.hasKey("title") ? notifyRequestBluetooth.getString("title") : "";
+            String titleEn = notifyRequestBluetooth.hasKey("title_en") ? notifyRequestBluetooth.getString("title_en") : "";
+            String messageVi = notifyRequestBluetooth.hasKey("message") ? notifyRequestBluetooth.getString("message") : "";
+            String messageEn = notifyRequestBluetooth.hasKey("message_en") ? notifyRequestBluetooth.getString("message_en") : "";
+            AppConfig.setNotifyRequestBluContent(reactContext, itemRepeat, bigTextVi, bigTextEn, subTextVi, subTextEn, titleVi, titleEn, messageVi, messageEn);
+        }
+
+        ReadableMap notifyRequestLocation = configs.hasKey("NotifyRequestLocation") ? configs.getMap("NotifyRequestLocation") : null;
+        if(notifyRequestLocation != null) {
+            String itemRepeat = notifyRequestLocation.hasKey("itemRepeat") ? notifyRequestLocation.getArray("itemRepeat").toString() : "";
+            String bigTextVi = notifyRequestLocation.hasKey("bigText") ? notifyRequestLocation.getString("bigText") : "";
+            String bigTextEn = notifyRequestLocation.hasKey("bigText_en") ? notifyRequestLocation.getString("bigText_en") : "";
+            String subTextVi = notifyRequestLocation.hasKey("subText") ? notifyRequestLocation.getString("subText") : "";
+            String subTextEn = notifyRequestLocation.hasKey("subText_en") ? notifyRequestLocation.getString("subText_en") : "";
+            String titleVi = notifyRequestLocation.hasKey("title") ? notifyRequestLocation.getString("title") : "";
+            String titleEn = notifyRequestLocation.hasKey("title_en") ? notifyRequestLocation.getString("title_en") : "";
+            String messageVi = notifyRequestLocation.hasKey("message") ? notifyRequestLocation.getString("message") : "";
+            String messageEn = notifyRequestLocation.hasKey("message_en") ? notifyRequestLocation.getString("message_en") : "";
+            AppConfig.setNotifyRequestLocationContent(reactContext, itemRepeat, bigTextVi, bigTextEn, subTextVi, subTextEn, titleVi, titleEn, messageVi, messageEn);
+        }
     }
 
 //    public WritableMap getConfig () {
