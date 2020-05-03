@@ -252,10 +252,26 @@ public class AppPreferenceManager extends AbstractPreferenceManager {
         return getInt(PreferenceConstants.CONFIG_SERVER_ENABLE_BLUETOOTH_BATTERY_LEVEL, levelDefault);
     }
 
+    /**
+     * Set language
+     * @param language
+     */
+    public void setLanguage(String language) {
+        putString(PreferenceConstants.LANGUAGE, language);
+    }
+
+    /**
+     * Set language
+     */
+    public String getLanguage() {
+        return getString(PreferenceConstants.LANGUAGE, "vi");
+    }
+
     // Constant pre
     public static class PreferenceConstants {
         // Name
         public static final String USER_ID = "user_id";
+        public static final String LANGUAGE = "app_language";
 
         // config
         public static final String CONFIG_SCAN_BLE = "scan_ble";

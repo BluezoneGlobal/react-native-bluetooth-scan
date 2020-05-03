@@ -17,6 +17,7 @@ import com.facebook.react.bridge.WritableNativeMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.scan.apis.AsyncStorageApi;
 import com.scan.backup.BackupUtils;
+import com.scan.preference.AppPreferenceManager;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -46,6 +47,7 @@ public class TraceCovidModuleManager {
         Log.e("Scan Full: ", scanFull ? "true" : "false");
 
         intent.putExtra(ServiceTraceCovid.EXTRA_SCHEDULER_TYPE, scanFull ? ServiceTraceCovid.TYPE_SCAN_FULL : ServiceTraceCovid.TYPE_APP_EXIT);
+//        intent.putExtra("language", language);
 
         // File dir = reactContext.getDatabasePath("app_db.db");
 
@@ -178,5 +180,10 @@ public class TraceCovidModuleManager {
         params.putString("platform", platform);
         params.putInt("typeScan", type);
         traceCovidModule.emitEvent("onScanBlueToothResult", params);
+    }
+
+    public void setLanguage(String language) {
+        AppPreferenceManager.getInstance(reactContext).setLanguage(language);
+        AppUtils.changeLanguageNotification(reactContext, language);
     }
 }

@@ -19,7 +19,6 @@ import android.util.Log;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 
-import com.scan.R;
 import com.scan.model.ScanConfig;
 import com.scan.preference.AppPreferenceManager;
 
@@ -32,6 +31,7 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.charset.Charset;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.UUID;
@@ -146,6 +146,9 @@ public class AppUtils {
         return checkSelfPermission(context, storagePermissions);
     }
 
+    private static NotificationManager manager;
+    private static NotificationCompat.Builder notificationBuider;
+    private static Notification notification;
     /**
      * Tao notify chanel cho app
      * @param context
@@ -154,12 +157,28 @@ public class AppUtils {
         // Check SDK
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             // Tao notifi
-            Notification notification = AppUtils.createNotificationBluezone(context);
+            AppUtils.createNotificationBluezone(context);
 
             // check and start
             if (notification != null) {
                 service.startForeground(AppConstants.NOTIFICATION_SERVICE_BLUE_ZONE_ID, notification);
             }
+        }
+    }
+
+    /**
+     * Tạp notification cho app
+     * @param context
+     */
+    public static void createNotificationBluezone(Context context) {
+        try {
+            // Tạo channel
+            createNotificationChannel(context);
+            createNotification(context);
+            notification = notificationBuider.build();
+            manager.notify(AppConstants.NOTIFICATION_SERVICE_BLUE_ZONE_ID, notification);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -176,42 +195,36 @@ public class AppUtils {
                     NotificationManager.IMPORTANCE_DEFAULT);
 
             // create
-            NotificationManager manager = context.getSystemService(NotificationManager.class);
+            manager = context.getSystemService(NotificationManager.class);
             manager.createNotificationChannel(serviceChannel);
         }
     }
 
-    /**
-     * Tạp notification cho app
-     * @param context
-     */
-    public static Notification createNotificationBluezone(Context context) {
-        try {
-            // Tạo channel
-            createNotificationChannel(context);
+    public static void createNotification(Context context) {
+        Intent notificationIntent = new Intent(context, getMainActivityClass(context));
+        PendingIntent pendingIntent = PendingIntent.getActivity(context,
+                AppConstants.NOTIFICATION_CHANNEL_ID_CODE, notificationIntent, 0);
 
-            // Tao pending
-            Intent notificationIntent = new Intent(context, getMainActivityClass(context));
-            PendingIntent pendingIntent = PendingIntent.getActivity(context,
-                    AppConstants.NOTIFICATION_CHANNEL_ID_CODE, notificationIntent, 0);
+        String language = AppPreferenceManager.getInstance(context).getLanguage();
 
-            // Tao thong bao
-            Notification notification = new NotificationCompat.Builder(context, AppConstants.NOTIFICATION_CHANNEL_ID)
-                    .setPriority(PRIORITY_MIN)
-                    .setContentTitle(context.getString(R.string.notification_title))
-                    .setContentText(context.getString(R.string.notification_content))
-                    .setSmallIcon(R.mipmap.icon_bluezone_service)
-                    .setContentIntent(pendingIntent)
-                    .setNumber(AppConstants.NOTIFY_SERVICE_NUMBER)
-                    .build();
+        String content = !isNullOrEmpty(language) && language.compareTo("en") == 0  ? context.getString(R.string.notification_content_en) : context.getString(R.string.notification_content);
+        // Tao thong bao
+        notificationBuider = new NotificationCompat.Builder(context, AppConstants.NOTIFICATION_CHANNEL_ID)
+                .setPriority(PRIORITY_MIN)
+                .setContentTitle(context.getString(R.string.notification_title))
+                .setContentText(content)
+                .setSmallIcon(R.mipmap.icon_bluezone_service)
+                .setContentIntent(pendingIntent)
+                .setNumber(AppConstants.NOTIFY_SERVICE_NUMBER);
+    }
 
-            // ret
-            return notification;
-        } catch (Exception e) {
-            e.printStackTrace();
+    public static void changeLanguageNotification(Context context, String language) {
+        String content = !isNullOrEmpty(language) && language.compareTo("en") == 0  ? context.getString(R.string.notification_content_en) : context.getString(R.string.notification_content);
+        if(notificationBuider == null) {
+            return;
         }
-
-        return null;
+        notificationBuider.setContentText(content);
+        manager.notify(AppConstants.NOTIFICATION_SERVICE_BLUE_ZONE_ID, notificationBuider.build());
     }
 
     /*
@@ -688,5 +701,11 @@ public class AppUtils {
         }
 
         return 0;
+    }
+
+    private static boolean isNullOrEmpty(String str) {
+        if(str != null && !str.trim().isEmpty())
+            return false;
+        return true;
     }
 }

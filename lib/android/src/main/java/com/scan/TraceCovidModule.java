@@ -81,6 +81,10 @@ public class TraceCovidModule extends ReactContextBaseJavaModule {
 //            callback.invoke(false);
 //        }
 //    }
+    @ReactMethod
+    public void setLanguage(String language) {
+        this.manager.setLanguage(language);
+    }
 
     @ReactMethod
     public void setId(String id) {

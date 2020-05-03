@@ -27,10 +27,10 @@ public class AppDatabaseHelper extends SQLiteOpenHelper {
     // Bang luu thong tin
     public static final String TABLE_NAME = "trace_info";
     public static final String COLUMN_NAMES_TIME = "timestamp";    // timestamp
-    public static final String COLUMN_NAMES_USER_ID = "userid";   // user_id
+    public static final String COLUMN_NAMES_USER_ID = "userid";    // user_id
     public static final String COLUMN_NAMES_MAC_ID = "macid";      // mac
     public static final String COLUMN_NAMES_RSSI = "rssi";         // Sóng
-    public static final String COLUMN_NAMES_DEVICES = "devices";    // Thiet bi
+    public static final String COLUMN_NAMES_DEVICES = "devices";   // Thiet bi
 
     // Index
     private static final int COLUMN_INDEX_TIME = 1;

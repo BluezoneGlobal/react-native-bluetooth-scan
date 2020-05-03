@@ -6,7 +6,6 @@ import android.os.Environment;
 
 import com.scan.AppConstants;
 import com.scan.AppUtils;
-import com.scan.database.BackupDatabaseService;
 import com.scan.database.ExternalDatabaseHelper;
 import com.scan.preference.AppPreferenceManager;
 
