@@ -2,7 +2,18 @@ package com.scan.preference;
 
 import android.content.Context;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import com.facebook.react.bridge.Dynamic;
+import com.facebook.react.bridge.ReadableArray;
+import com.facebook.react.bridge.ReadableMap;
+import com.facebook.react.bridge.ReadableMapKeySetIterator;
+import com.facebook.react.bridge.ReadableType;
+import com.facebook.react.bridge.WritableMap;
+
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 /**
@@ -342,6 +353,42 @@ public class AppPreferenceManager extends AbstractPreferenceManager {
         return result;
     }
 
+    public void setNotifyRequestPermisson(
+            String bigTextVi,
+            String bigTextEn,
+            String subTextVi,
+            String subTextEn,
+            String titleVi,
+            String titleEn,
+            String messageVi,
+            String messageEn,
+            String itemRepeat
+    ) {
+        putString(PreferenceConstants.NOTIFICATION_REQUEST_PERMISSON_BIG_TEXT_VI, bigTextVi);
+        putString(PreferenceConstants.NOTIFICATION_REQUEST_PERMISSON_BIG_TEXT_EN, bigTextEn);
+        putString(PreferenceConstants.NOTIFICATION_REQUEST_PERMISSON_SUB_TEXT_VI, subTextVi);
+        putString(PreferenceConstants.NOTIFICATION_REQUEST_PERMISSON_SUB_TEXT_EN, subTextEn);
+        putString(PreferenceConstants.NOTIFICATION_REQUEST_PERMISSON_TITLE_VI, titleVi);
+        putString(PreferenceConstants.NOTIFICATION_REQUEST_PERMISSON_TITLE_EN, titleEn);
+        putString(PreferenceConstants.NOTIFICATION_REQUEST_PERMISSON_MESSAGE_VI, messageVi);
+        putString(PreferenceConstants.NOTIFICATION_REQUEST_PERMISSON_MESSAGE_EN, messageEn);
+        putString(PreferenceConstants.NOTIFICATION_REQUEST_PERMISSON_REPEAT, itemRepeat);
+    }
+
+    public Map<String, String> getNotifyRequestPermisson (String language) {
+        Map<String, String> result = new HashMap<>();
+        result.put("itemRepeat", getString(PreferenceConstants.NOTIFICATION_REQUEST_PERMISSON_REPEAT, ""));
+        result.put("bigText", getString(PreferenceConstants.NOTIFICATION_REQUEST_PERMISSON_BIG_TEXT_VI, "bigTextVi"));
+        result.put("bigText_en", getString(PreferenceConstants.NOTIFICATION_REQUEST_PERMISSON_BIG_TEXT_EN, "bigTextEn"));
+        result.put("subText", getString(PreferenceConstants.NOTIFICATION_REQUEST_PERMISSON_SUB_TEXT_VI, "subTextVi"));
+        result.put("subText_en", getString(PreferenceConstants.NOTIFICATION_REQUEST_PERMISSON_SUB_TEXT_EN, "subTextEn"));
+        result.put("title", getString(PreferenceConstants.NOTIFICATION_REQUEST_PERMISSON_TITLE_VI, "titleVi"));
+        result.put("title_en", getString(PreferenceConstants.NOTIFICATION_REQUEST_PERMISSON_TITLE_EN, "titleEn"));
+        result.put("message", getString(PreferenceConstants.NOTIFICATION_REQUEST_PERMISSON_MESSAGE_VI, "messageVi"));
+        result.put("message_en", getString(PreferenceConstants.NOTIFICATION_REQUEST_PERMISSON_MESSAGE_EN, "messageEn"));
+        return result;
+    }
+
     // Constant pre
     public static class PreferenceConstants {
         // Name
@@ -390,5 +437,15 @@ public class AppPreferenceManager extends AbstractPreferenceManager {
         public static final String NOTIFICATION_LOCATION_MESSAGE_VI = "notification_location_message_vi";
         public static final String NOTIFICATION_LOCATION_MESSAGE_EN = "notification_location_message_en";
         public static final String NOTIFICATION_LOCATION_REPEAT = "notification_location_repeat";
+
+        public static final String NOTIFICATION_REQUEST_PERMISSON_BIG_TEXT_VI = "notification_request_permisson_big_text_vi";
+        public static final String NOTIFICATION_REQUEST_PERMISSON_BIG_TEXT_EN = "notification_request_permisson_big_text_en";
+        public static final String NOTIFICATION_REQUEST_PERMISSON_SUB_TEXT_VI = "notification_request_permisson_sub_text_vi";
+        public static final String NOTIFICATION_REQUEST_PERMISSON_SUB_TEXT_EN = "notification_request_permisson_sub_text_en";
+        public static final String NOTIFICATION_REQUEST_PERMISSON_TITLE_VI = "notification_request_permisson_title_text_vi";
+        public static final String NOTIFICATION_REQUEST_PERMISSON_TITLE_EN = "notification_request_permisson_title_text_en";
+        public static final String NOTIFICATION_REQUEST_PERMISSON_MESSAGE_VI = "notification_request_permisson_message_vi";
+        public static final String NOTIFICATION_REQUEST_PERMISSON_MESSAGE_EN = "notification_request_permisson_message_en";
+        public static final String NOTIFICATION_REQUEST_PERMISSON_REPEAT = "notification_request_permisson_repeat";
     }
 }

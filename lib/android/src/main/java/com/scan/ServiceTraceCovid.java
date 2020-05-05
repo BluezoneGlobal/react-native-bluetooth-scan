@@ -1,5 +1,6 @@
 package com.scan;
 
+import android.Manifest;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -21,18 +22,22 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.BatteryManager;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
 import android.os.SystemClock;
 import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Log;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
+import androidx.core.content.ContextCompat;
 
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.scan.database.AppDatabaseHelper;
@@ -45,6 +50,8 @@ import org.json.JSONException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * Class service thực hiện viẹc phát và bắt các kết nối
@@ -125,6 +132,8 @@ public class ServiceTraceCovid extends Service {
     BluetoothGatt mBluetoothGatt;
     ConnectTask mConnectTask;
 
+    final Handler handler = new Handler();
+
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
@@ -150,6 +159,36 @@ public class ServiceTraceCovid extends Service {
         // Array
         mScanResultList = new ArrayList<>();
         mMacConnectList = new ArrayList<>();
+
+        Timer timer = new Timer();
+        TimerTask timerTask = new TimerTask() {
+            public void run() {
+                // use a handler to run a toast that shows the current timestamp
+                handler.post(new Runnable() {
+                    public void run() {
+
+                        if (mModeScan != MODE_SCAN_FULL) {
+                            if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                                // Create notify schuled
+                                try {
+                                    AppUtils.createNotifyRequestPermisson(getApplicationContext());
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
+                            } else {
+                                // Permission granted
+                                try {
+                                    AppUtils.clearNotifyRequestPermisson(getApplicationContext());
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        };
+        timer.schedule(timerTask, 10000, 20 * 1000); //
     }
 
     /**

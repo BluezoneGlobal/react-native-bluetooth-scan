@@ -135,7 +135,7 @@ public class TraceCovidModuleManager {
                 batteryLevelEnableBluetooth
         );
 
-        ReadableMap notifyRequestBluetooth = configs.hasKey("NotifyRequestBluetooth") ? configs.getMap("NotifyRequestBluetooth") : null;
+        ReadableMap notifyRequestBluetooth = configs.hasKey("NotificationRequestBluetooth") ? configs.getMap("NotificationRequestBluetooth") : null;
         if(notifyRequestBluetooth != null) {
             String itemRepeat = notifyRequestBluetooth.hasKey("itemRepeat") ? notifyRequestBluetooth.getArray("itemRepeat").toString() : "";
             String bigTextVi = notifyRequestBluetooth.hasKey("bigText") ? notifyRequestBluetooth.getString("bigText") : "";
@@ -149,7 +149,7 @@ public class TraceCovidModuleManager {
             AppConfig.setNotifyRequestBluContent(reactContext, itemRepeat, bigTextVi, bigTextEn, subTextVi, subTextEn, titleVi, titleEn, messageVi, messageEn);
         }
 
-        ReadableMap notifyRequestLocation = configs.hasKey("NotifyRequestLocation") ? configs.getMap("NotifyRequestLocation") : null;
+        ReadableMap notifyRequestLocation = configs.hasKey("NotificationRequestLocation") ? configs.getMap("NotificationRequestLocation") : null;
         if(notifyRequestLocation != null) {
             String itemRepeat = notifyRequestLocation.hasKey("itemRepeat") ? notifyRequestLocation.getArray("itemRepeat").toString() : "";
             String bigTextVi = notifyRequestLocation.hasKey("bigText") ? notifyRequestLocation.getString("bigText") : "";
@@ -161,6 +161,32 @@ public class TraceCovidModuleManager {
             String messageVi = notifyRequestLocation.hasKey("message") ? notifyRequestLocation.getString("message") : "";
             String messageEn = notifyRequestLocation.hasKey("message_en") ? notifyRequestLocation.getString("message_en") : "";
             AppConfig.setNotifyRequestLocationContent(reactContext, itemRepeat, bigTextVi, bigTextEn, subTextVi, subTextEn, titleVi, titleEn, messageVi, messageEn);
+        }
+
+        ReadableMap notifyRequestPermisson = configs.hasKey("NotificationRequestPermissonAndroid") ? configs.getMap("NotificationRequestPermissonAndroid") : null;
+        if(notifyRequestLocation != null) {
+            String itemRepeat = notifyRequestPermisson.hasKey("itemRepeat") ? notifyRequestPermisson.getArray("itemRepeat").toString() : "";
+            String bigTextVi = notifyRequestPermisson.hasKey("bigText") ? notifyRequestPermisson.getString("bigText") : "";
+            String bigTextEn = notifyRequestPermisson.hasKey("bigText_en") ? notifyRequestPermisson.getString("bigText_en") : "";
+            String subTextVi = notifyRequestPermisson.hasKey("subText") ? notifyRequestPermisson.getString("subText") : "";
+            String subTextEn = notifyRequestPermisson.hasKey("subText_en") ? notifyRequestPermisson.getString("subText_en") : "";
+            String titleVi = notifyRequestPermisson.hasKey("title") ? notifyRequestPermisson.getString("title") : "";
+            String titleEn = notifyRequestPermisson.hasKey("title_en") ? notifyRequestPermisson.getString("title_en") : "";
+            String messageVi = notifyRequestPermisson.hasKey("message") ? notifyRequestPermisson.getString("message") : "";
+            String messageEn = notifyRequestPermisson.hasKey("message_en") ? notifyRequestPermisson.getString("message_en") : "";
+
+            AppPreferenceManager preferenceManager = AppPreferenceManager.getInstance(reactContext);
+            preferenceManager.setNotifyRequestPermisson(
+                    bigTextVi,
+                    bigTextEn,
+                    subTextVi,
+                    subTextEn,
+                    titleVi,
+                    titleEn,
+                    messageVi,
+                    messageEn,
+                    itemRepeat
+            );
         }
     }
 

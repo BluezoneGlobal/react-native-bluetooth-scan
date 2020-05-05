@@ -219,10 +219,12 @@ public class AppUtils {
         String language = AppPreferenceManager.getInstance(context).getLanguage();
 
         String content = !isNullOrEmpty(language) && language.compareTo("en") == 0  ? context.getString(R.string.notification_content_en) : context.getString(R.string.notification_content);
+        String title = !isNullOrEmpty(language) && language.compareTo("en") == 0  ? context.getString(R.string.notification_title_en) : context.getString(R.string.notification_title);
         // Tao thong bao
         notificationBuider = new NotificationCompat.Builder(context, AppConstants.NOTIFICATION_CHANNEL_ID)
                 .setPriority(PRIORITY_MIN)
-                .setContentTitle(context.getString(R.string.notification_title))
+                .setContentTitle(title)
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(content))
                 .setContentText(content)
                 .setSmallIcon(R.mipmap.icon_bluezone_service)
                 .setContentIntent(pendingIntent);
@@ -230,6 +232,7 @@ public class AppUtils {
     }
 
     public static void createNotifyRequestBluetooth(Context context) throws JSONException {
+        AppUtils.clearNotifyRequestBluetooth(context);
 //        Intent notificationIntent = new Intent(context, getMainActivityClass(context));
 //        PendingIntent pendingIntent = PendingIntent.getActivity(context,
 //                AppConstants.NOTIFICATION_CHANNEL_ID_CODE, notificationIntent, 0);
@@ -341,25 +344,10 @@ public class AppUtils {
         }
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
     public static void createNotifyRequestLocation(Context context) throws JSONException {
-        Intent notificationIntent = new Intent(context, getMainActivityClass(context));
-        PendingIntent pendingIntent = PendingIntent.getActivity(context,
-                AppConstants.NOTIFICATION_CHANNEL_ID_CODE, notificationIntent, 0);
-
+        AppUtils.clearNotifyRequestLocation(context);
         String language = AppPreferenceManager.getInstance(context).getLanguage();
         Map<String, String> notifyInfoMap = AppPreferenceManager.getInstance(context).getNotifyRequestLocation(language);
-
-        // Create notify now
-//        Notification notificationBuider = new NotificationCompat.Builder(context, AppConstants.NOTIFICATION_CHANNEL_ID)
-//                .setPriority(PRIORITY_MIN)
-//                .setSubText(notifyInfoMap.get("subText")) // Sub text
-//                .setContentTitle(notifyInfoMap.get("bigText")) // Big text
-//                .setContentText(notifyInfoMap.get("title")) // Title
-//                .setSmallIcon(R.mipmap.icon_bluezone_service)
-//                .setContentIntent(pendingIntent)
-//                .build();
-//        manager.notify(AppConstants.NOTIFICATION_LOCATION_BLUE_ZONE_ID, notificationBuider);
 
         // Create notify repeat
         String strItemRepeat = notifyInfoMap.get("itemRepeat");
@@ -372,11 +360,11 @@ public class AppUtils {
         } catch (JSONException e) {
             e.printStackTrace();
         }
+        long now = System.currentTimeMillis();
         for (int i = 0; i < itemRepeatArray.length(); i++) {
             JSONObject item = itemRepeatArray.getJSONObject(i);
-            int id = item.getInt("id");
+            int notificationId = item.getInt("id");
             int dayStartTime = item.getInt("dayStartTime");
-            long now = System.currentTimeMillis();
             int repeatTime = item.getInt("repeatTime");
 
             Calendar calendar = Calendar.getInstance();
@@ -391,10 +379,14 @@ public class AppUtils {
 
             Intent intent = new Intent(context, NotificationReceiver.class);
             intent.putExtra("subText", notifyInfoMap.get("subText"));
+            intent.putExtra("subText_en", notifyInfoMap.get("subText_en"));
             intent.putExtra("bigText", notifyInfoMap.get("bigText"));
+            intent.putExtra("bigText_en", notifyInfoMap.get("bigText_en"));
             intent.putExtra("title", notifyInfoMap.get("title"));
-            intent.putExtra("id", AppConstants.NOTIFICATION_LOCATION_BLUE_ZONE_ID);
-            PendingIntent pending = PendingIntent.getBroadcast(context, AppConstants.NOTIFICATION_LOCATION_BLUE_ZONE_ID, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+            intent.putExtra("title_en", notifyInfoMap.get("title_en"));
+            intent.putExtra("message", notifyInfoMap.get("message"));
+            intent.putExtra("message_en", notifyInfoMap.get("message_en"));
+            PendingIntent pending = PendingIntent.getBroadcast(context, notificationId, intent, PendingIntent.FLAG_UPDATE_CURRENT);
 
             // Schdedule notification
             AlarmManager manager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
@@ -431,14 +423,10 @@ public class AppUtils {
         }
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
     public static void createNotifyRequestPermisson(Context context) throws JSONException {
-        Intent notificationIntent = new Intent(context, getMainActivityClass(context));
-        PendingIntent pendingIntent = PendingIntent.getActivity(context,
-                AppConstants.NOTIFICATION_CHANNEL_ID_CODE, notificationIntent, 0);
-
+        AppUtils.clearNotifyRequestPermisson(context);
         String language = AppPreferenceManager.getInstance(context).getLanguage();
-        Map<String, String> notifyInfoMap = AppPreferenceManager.getInstance(context).getNotifyRequestLocation(language);
+        Map<String, String> notifyInfoMap = AppPreferenceManager.getInstance(context).getNotifyRequestPermisson(language);
 
         // Create notify repeat
         String strItemRepeat = notifyInfoMap.get("itemRepeat");
@@ -486,11 +474,43 @@ public class AppUtils {
         }
     }
 
+    public static void clearNotifyRequestPermisson(Context context) throws JSONException {
+        String language = AppPreferenceManager.getInstance(context).getLanguage();
+        Map<String, String> notifyInfoMap = AppPreferenceManager.getInstance(context).getNotifyRequestPermisson(language);
+        String strItemRepeat = notifyInfoMap.get("itemRepeat");
+        if(strItemRepeat == null || strItemRepeat.length() == 0) {
+            return;
+        }
+        JSONArray itemRepeatArray = null;
+        try {
+            itemRepeatArray = new JSONArray(strItemRepeat);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        for (int i = 0; i < itemRepeatArray.length(); i++) {
+            JSONObject item = itemRepeatArray.getJSONObject(i);
+            int notificationId = item.getInt("id");
+            Bundle b = new Bundle();
+            b.putString("id", String.valueOf(notificationId));
+            Intent notificationIntent = new Intent(context, NotificationReceiver.class);
+            notificationIntent.putExtra("id", notificationId);
+            notificationIntent.putExtras(b);
+            PendingIntent pendingIntent = PendingIntent.getBroadcast(context, notificationId, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+            AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+            alarmManager.cancel(pendingIntent);
+            notificationManager.cancel(notificationId);
+        }
+    }
+
     public static void changeLanguageNotification(Context context, String language) {
         String content = !isNullOrEmpty(language) && language.compareTo("en") == 0  ? context.getString(R.string.notification_content_en) : context.getString(R.string.notification_content);
+        String title = !isNullOrEmpty(language) && language.compareTo("en") == 0  ? context.getString(R.string.notification_title_en) : context.getString(R.string.notification_title);
         if(notificationBuider == null) {
             return;
         }
+        notificationBuider.setContentTitle(title);
+        notificationBuider.setStyle(new NotificationCompat.BigTextStyle().bigText(content));
         notificationBuider.setContentText(content);
         notificationManager.notify(AppConstants.NOTIFICATION_SERVICE_BLUE_ZONE_ID, notificationBuider.build());
     }

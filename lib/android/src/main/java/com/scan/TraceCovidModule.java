@@ -85,7 +85,7 @@ public class TraceCovidModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void setId(String id) {
-        AppPreferenceManager.getInstance(reactContext).setPhoneNumber(id);
+        AppPreferenceManager.getInstance(reactContext).setBlid(id);
     }
 
     @ReactMethod
