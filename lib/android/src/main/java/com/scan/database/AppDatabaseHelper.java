@@ -31,7 +31,7 @@ public class AppDatabaseHelper extends SQLiteOpenHelper {
     public static final String COLUMN_NAMES_MAC_ID = "macid";       // mac
     public static final String COLUMN_NAMES_RSSI = "rssi";          // rssi
     public static final String COLUMN_NAMES_DEVICES = "devices";    // devices
-    public static final String COLUMN_NAMES_BLID = "blid";          // blid
+    public static final String COLUMN_NAMES_BLID = "blid";          // blid => UserCode
     public static final String COLUMN_NAMES_TX_POWER = "tx_power";  // tx_power
     public static final String COLUMN_NAMES_STATE = "state";        // state
 

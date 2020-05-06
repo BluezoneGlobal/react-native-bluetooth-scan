@@ -8,9 +8,12 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
+import com.facebook.react.bridge.WritableArray;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
+import com.facebook.react.uimanager.IllegalViewOperationException;
 import com.scan.backup.BackupUtils;
 import com.scan.preference.AppPreferenceManager;
 
@@ -92,6 +95,47 @@ public class TraceCovidModule extends ReactContextBaseJavaModule {
     public void restoreDb() {
         // Restore DB tu External storage
         BackupUtils.restoreDatabaseFromExternalStorage(reactContext);
+    }
+
+    @ReactMethod
+    public void checkContact(ReadableArray ids, Promise promise) {
+        try {
+            int length = 0;
+            if(ids != null) {
+                length = ids.size();
+            } else {
+                promise.reject("Error", "Don't find id");
+            }
+            if(length > 2) {
+                promise.resolve(true);
+            } else {
+                promise.resolve(false);
+            }
+        }  catch (IllegalViewOperationException e) {
+            promise.reject("Error", "An error occurred");
+        }
+    }
+
+    @ReactMethod
+    public void writeHistoryContact(ReadableArray ids, Promise promise) {
+        try {
+            String arrId[];
+            int length = 0;
+            if(ids != null) {
+                length = ids.size();
+                arrId = new String[length];
+            } else {
+                arrId = null;
+            }
+            for(int i = 0; i < length; i++) {
+                arrId[i] = ids.getString(i);
+            }
+
+            String uri = BackupUtils.backupFileData(reactContext, arrId);
+            promise.resolve(uri);
+        } catch (IllegalViewOperationException e) {
+            promise.reject("Error", "An error occurred");
+        }
     }
 
     @ReactMethod
