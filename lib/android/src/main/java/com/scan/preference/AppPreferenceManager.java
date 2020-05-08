@@ -251,6 +251,14 @@ public class AppPreferenceManager extends AbstractPreferenceManager {
         return getLong(PreferenceConstants.CONFIG_SERVER_ENABLE_BLUETOOTH_INTERVAL, timeDefault);
     }
 
+    public void setConfigCheckIntervalRequestPermission(long time) {
+        putLong(PreferenceConstants.CONFIG_SERVER_CHECK_NOTIFY_REQUEST_PERMISSON, time);
+    }
+
+    public long getConfigCheckIntervalRequestPermission(long timeDefault) {
+        return getLong(PreferenceConstants.CONFIG_SERVER_CHECK_NOTIFY_REQUEST_PERMISSON, timeDefault);
+    }
+
     /**
      * Set config enable bluetooth battery level
      * @param time
@@ -409,6 +417,7 @@ public class AppPreferenceManager extends AbstractPreferenceManager {
         public static final String CONFIG_SERVER_ENABLE_BLUETOOTH_INTERVAL = "sever_enable_bluetooth_interval";
         public static final String CONFIG_SERVER_INSERT_DB = "server_insert_db";
         public static final String CONFIG_SERVER_BACKUP_DB = "server_backup_db";
+        public static final String CONFIG_SERVER_CHECK_NOTIFY_REQUEST_PERMISSON = "server_check_notify_request_";
 
         // config log file
         public static final String CONFIG_LOG_FILE = "log";

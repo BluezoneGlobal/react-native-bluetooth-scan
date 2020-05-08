@@ -33,10 +33,8 @@ import android.os.SystemClock;
 import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Log;
-import android.widget.Toast;
 
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.core.content.ContextCompat;
 
 import com.facebook.react.bridge.ReactApplicationContext;
@@ -57,7 +55,6 @@ import java.util.TimerTask;
  * Class service thực hiện viẹc phát và bắt các kết nối
  * @author khanhxu
  */
-@RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
 public class ServiceTraceCovid extends Service {
     // Context
     public static ReactApplicationContext reactContext;
@@ -188,7 +185,7 @@ public class ServiceTraceCovid extends Service {
                 });
             }
         };
-        timer.schedule(timerTask, 10000, 20 * 1000); //
+        timer.schedule(timerTask, 10000, AppPreferenceManager.getInstance(getApplicationContext()).getConfigCheckIntervalRequestPermission(AppConstants.Config.DEFAULT_INTERVAL_CHECK_PERMISSON)); //
     }
 
     /**
@@ -1006,7 +1003,6 @@ public class ServiceTraceCovid extends Service {
 
     // Class
     class BluetoothChangedReceiver extends BroadcastReceiver {
-        @RequiresApi(api = Build.VERSION_CODES.O)
         @Override
         public void onReceive(Context context, Intent intent) {
             // check
@@ -1200,7 +1196,6 @@ public class ServiceTraceCovid extends Service {
                 return !TextUtils.isEmpty(locationProviders);
             }
         }
-        @RequiresApi(api = Build.VERSION_CODES.P)
         @Override
         public void onReceive(Context context, Intent intent) {
             // check

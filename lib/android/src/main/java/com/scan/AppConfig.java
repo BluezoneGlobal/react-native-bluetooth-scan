@@ -7,18 +7,19 @@ import com.scan.preference.AppPreferenceManager;
 public class AppConfig {
     public static void setConfigs(
             Context context,
-            int timeScanBle,
-            int timeSleepScanBle,
-            int timeBroadcast,
-            int timeSleepBroadcast,
-            int timeScanDevices,
-            int timeSleepScanDevices,
-            int timeSaveLog,
-            int dbMaxRow,
-            int dbMaxDay,
-            int timeBackup,
-            int timeIntervalEnableBluetooth,
-            int batteryLevelEnableBluetooth
+            long timeScanBle,
+            long timeSleepScanBle,
+            long timeBroadcast,
+            long timeSleepBroadcast,
+            long timeScanDevices,
+            long timeSleepScanDevices,
+            long timeSaveLog,
+            long dbMaxRow,
+            long dbMaxDay,
+            long timeBackup,
+            long timeIntervalEnableBluetooth,
+            int batteryLevelEnableBluetooth,
+            long intervalRequestPermisson
     ) {
         AppPreferenceManager preferenceManager = AppPreferenceManager.getInstance(context);
 
@@ -69,6 +70,10 @@ public class AppConfig {
         // Auto anable bluetooth
         if (batteryLevelEnableBluetooth > -1) {
             preferenceManager.setConfigEnableBluetoothBatteryLevel(batteryLevelEnableBluetooth);
+        }
+
+        if (batteryLevelEnableBluetooth > 10 * 1000) {
+            preferenceManager.setConfigCheckIntervalRequestPermission(intervalRequestPermisson);
         }
     }
 

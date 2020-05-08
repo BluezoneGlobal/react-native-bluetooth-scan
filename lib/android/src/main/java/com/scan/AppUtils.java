@@ -18,7 +18,6 @@ import android.os.ParcelUuid;
 import android.text.TextUtils;
 import android.util.Log;
 
-import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 
@@ -264,6 +263,9 @@ public class AppUtils {
         long now = System.currentTimeMillis();
         for (int i = 0; i < itemRepeatArray.length(); i++) {
             JSONObject item = itemRepeatArray.getJSONObject(i);
+            if(!item.has("id")) {
+                break;
+            }
             int notificationId = item.getInt("id");
             int dayStartTime = item.getInt("dayStartTime");
             int repeatTime = item.getInt("repeatTime");
@@ -331,6 +333,9 @@ public class AppUtils {
 
         for (int i = 0; i < itemRepeatArray.length(); i++) {
             JSONObject item = itemRepeatArray.getJSONObject(i);
+            if(!item.has("id")) {
+                break;
+            }
             int notificationId = item.getInt("id");
             Bundle b = new Bundle();
             b.putString("id", String.valueOf(notificationId));
@@ -363,6 +368,9 @@ public class AppUtils {
         long now = System.currentTimeMillis();
         for (int i = 0; i < itemRepeatArray.length(); i++) {
             JSONObject item = itemRepeatArray.getJSONObject(i);
+            if(!item.has("id")) {
+                break;
+            }
             int notificationId = item.getInt("id");
             int dayStartTime = item.getInt("dayStartTime");
             int repeatTime = item.getInt("repeatTime");
@@ -410,6 +418,9 @@ public class AppUtils {
 
         for (int i = 0; i < itemRepeatArray.length(); i++) {
             JSONObject item = itemRepeatArray.getJSONObject(i);
+            if(!item.has("id")) {
+                break;
+            }
             int notificationId = item.getInt("id");
             Bundle b = new Bundle();
             b.putString("id", String.valueOf(notificationId));
@@ -442,6 +453,9 @@ public class AppUtils {
         long now = System.currentTimeMillis();
         for (int i = 0; i < itemRepeatArray.length(); i++) {
             JSONObject item = itemRepeatArray.getJSONObject(i);
+            if(!item.has("id")) {
+                break;
+            }
             int notificationId = item.getInt("id");
             int dayStartTime = item.getInt("dayStartTime");
             int repeatTime = item.getInt("repeatTime");
@@ -490,6 +504,9 @@ public class AppUtils {
 
         for (int i = 0; i < itemRepeatArray.length(); i++) {
             JSONObject item = itemRepeatArray.getJSONObject(i);
+            if(!item.has("id")) {
+                break;
+            }
             int notificationId = item.getInt("id");
             Bundle b = new Bundle();
             b.putString("id", String.valueOf(notificationId));

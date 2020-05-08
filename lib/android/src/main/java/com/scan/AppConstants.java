@@ -54,9 +54,12 @@ public class AppConstants {
         // Time backup
         public static final long BACKUP_INTERVAL = 1 * 60 * 60 * 1000;
 
+        // Timmer check permisson to create notification
+        public static final long DEFAULT_INTERVAL_CHECK_PERMISSON = 2 * 60 * 1000;
+
         // ??
         public static long DATABASE_MAX_ROW = 100000;
-        public static int DATABASE_MAX_DAY = 100000;
+        public static long DATABASE_MAX_DAY = 100000;
 
     }
 
@@ -75,9 +78,6 @@ public class AppConstants {
     public static final String NOTIFICATION_CHANNEL_NAME = "Bluezone channel";
     public static final int NOTIFICATION_CHANNEL_ID_CODE = 42020;
     public static final int NOTIFICATION_SERVICE_BLUE_ZONE_ID = 2020;
-    public static final int NOTIFICATION_BLUETOOTH_BLUE_ZONE_ID = 2021;
-    public static final int NOTIFICATION_LOCATION_BLUE_ZONE_ID = 2022;
-    public static final int NOTIFICATION_PERMISSON_BLUE_ZONE_ID = 2023;
 
     // File
     public static final String PATH_APP = "/Bluezone/";

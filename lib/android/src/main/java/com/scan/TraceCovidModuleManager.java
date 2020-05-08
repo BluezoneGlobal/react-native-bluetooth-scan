@@ -3,25 +3,13 @@ package com.scan;
 import android.content.Intent;
 import android.os.Build;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.facebook.react.bridge.Arguments;
-import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.ReactApplicationContext;
-import com.facebook.react.bridge.ReactContext;
-import com.facebook.react.bridge.ReactContextBaseJavaModule;
-import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableMap;
-import com.facebook.react.bridge.WritableNativeMap;
-import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.scan.apis.AsyncStorageApi;
-import com.scan.backup.BackupUtils;
 import com.scan.preference.AppPreferenceManager;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -33,7 +21,6 @@ public class TraceCovidModuleManager {
     public TraceCovidModule traceCovidModule;
     public AsyncStorageApi storageApi;
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     public TraceCovidModuleManager(ReactApplicationContext reactContext, TraceCovidModule traceCovidModule) {
         this.reactContext = reactContext;
         this.traceCovidModule = traceCovidModule;
@@ -41,7 +28,6 @@ public class TraceCovidModuleManager {
         storageApi = new AsyncStorageApi(reactContext);
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     public void startService(boolean scanFull) throws JSONException {
         Intent intent = new Intent(reactContext, ServiceTraceCovid.class);
         Log.e("Scan Full: ", scanFull ? "true" : "false");
@@ -84,6 +70,7 @@ public class TraceCovidModuleManager {
 
             int timeIntervalEnableBluetooth = json.has("TimeEnableBluetooth") ? json.getInt("TimeEnableBluetooth") : -1;
             int batteryLevelEnableBluetooth = json.has("BatteryEnableBluetooth") ? json.getInt("BatteryEnableBluetooth") : -1;
+            int intervalRequestPermisson = json.has("IntervalRequestPermisson") ? json.getInt("IntervalRequestPermisson") : -1;
 
             AppConfig.setConfigs(
                     reactContext,
@@ -98,7 +85,8 @@ public class TraceCovidModuleManager {
                     dbMaxDay,
                     timeBackup,
                     timeIntervalEnableBluetooth,
-                    batteryLevelEnableBluetooth
+                    batteryLevelEnableBluetooth,
+                    intervalRequestPermisson
             );
         }
         catch (Exception e) {
@@ -119,6 +107,7 @@ public class TraceCovidModuleManager {
         int timeBackup = configs.hasKey("TimeBackup") ? configs.getInt("TimeBackup") : -1;
         int timeIntervalEnableBluetooth = configs.hasKey("TimeEnableBluetooth") ? configs.getInt("TimeEnableBluetooth") : -1;
         int batteryLevelEnableBluetooth = configs.hasKey("BatteryEnableBluetooth") ? configs.getInt("BatteryEnableBluetooth") : -1;
+        int intervalRequestPermisson = configs.hasKey("IntervalRequestPermisson") ? configs.getInt("IntervalRequestPermisson") : -1;
         AppConfig.setConfigs(
                 reactContext,
                 timeScanBleRun,
@@ -132,7 +121,8 @@ public class TraceCovidModuleManager {
                 dbMaxDay,
                 timeBackup,
                 timeIntervalEnableBluetooth,
-                batteryLevelEnableBluetooth
+                batteryLevelEnableBluetooth,
+                intervalRequestPermisson
         );
 
         ReadableMap notifyRequestBluetooth = configs.hasKey("NotificationRequestBluetooth") ? configs.getMap("NotificationRequestBluetooth") : null;

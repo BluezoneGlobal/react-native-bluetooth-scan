@@ -19,7 +19,6 @@ import com.scan.preference.AppPreferenceManager;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 
 import org.json.JSONException;
 
@@ -33,7 +32,6 @@ public class TraceCovidModule extends ReactContextBaseJavaModule {
         return "TraceCovid";
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     public TraceCovidModule(ReactApplicationContext context) {
         super(context);
         reactContext = context;
@@ -41,7 +39,6 @@ public class TraceCovidModule extends ReactContextBaseJavaModule {
         this.manager = new TraceCovidModuleManager(context, this);
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @ReactMethod
     public void startService(boolean scanFull) throws JSONException {
         this.manager.startService(scanFull);

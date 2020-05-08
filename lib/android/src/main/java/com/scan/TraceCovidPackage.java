@@ -14,7 +14,6 @@ import java.util.Collections;
 import java.util.List;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 
 public class TraceCovidPackage implements ReactPackage {
     public TraceCovidPackage(Activity activity) {}
@@ -22,7 +21,6 @@ public class TraceCovidPackage implements ReactPackage {
     public TraceCovidPackage() {
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
     public List<NativeModule> createNativeModules(ReactApplicationContext reactContext) {
         return Arrays.<NativeModule>asList(new TraceCovidModule(reactContext));
