@@ -8,7 +8,7 @@ import android.text.TextUtils;
 
 import com.scan.AppConstants;
 import com.scan.AppUtils;
-import com.scan.database.AppDatabaseHelper;
+import com.scan.database.OldAppDatabaseHelper;
 import com.scan.database.ExternalDatabaseHelper;
 import com.scan.preference.AppPreferenceManager;
 
@@ -342,27 +342,27 @@ public class BackupUtils {
                     fi = new RandomAccessFile(fileTrace.getAbsolutePath(), "rw");
 
                     // Get all cursor
-                    Cursor cursor = AppDatabaseHelper.getInstance(context).getCursorData(listBlid);
+                    Cursor cursor = OldAppDatabaseHelper.getInstance(context).getCursorData(listBlid);
 
                     // Check
                     if (cursor != null) {
                         // Read
                         while (cursor.moveToNext()) {
                             // Get info
-                            String blid = cursor.getString(AppDatabaseHelper.COLUMN_INDEX_BLID);
-                            String userId = cursor.getString(AppDatabaseHelper.COLUMN_INDEX_USER_ID);
-                            String macId = cursor.getString(AppDatabaseHelper.COLUMN_INDEX_MAC_ID);
-                            String devices = cursor.getString(AppDatabaseHelper.COLUMN_INDEX_DEVICES);
+                            String blid = cursor.getString(OldAppDatabaseHelper.COLUMN_INDEX_BLID);
+                            String userId = cursor.getString(OldAppDatabaseHelper.COLUMN_INDEX_USER_ID);
+                            String macId = cursor.getString(OldAppDatabaseHelper.COLUMN_INDEX_MAC_ID);
+                            String devices = cursor.getString(OldAppDatabaseHelper.COLUMN_INDEX_DEVICES);
 
                             // Data
                             String retItem = (blid != null ? blid : blidCurrent) + "\t" +
                                     (userId != null ? userId : "") + "\t" +
                                     (macId != null ? macId : "") + "\t" +
                                     (devices != null ? devices : "") + "\t" +
-                                    cursor.getInt(AppDatabaseHelper.COLUMN_INDEX_RSSI) + "\t" +
-                                    cursor.getInt(AppDatabaseHelper.COLUMN_INDEX_TX_POWER) + "\t" +
-                                    cursor.getInt(AppDatabaseHelper.COLUMN_INDEX_STATE) + "\t" +
-                                    cursor.getLong(AppDatabaseHelper.COLUMN_INDEX_TIME) +"\n";
+                                    cursor.getInt(OldAppDatabaseHelper.COLUMN_INDEX_RSSI) + "\t" +
+                                    cursor.getInt(OldAppDatabaseHelper.COLUMN_INDEX_TX_POWER) + "\t" +
+                                    cursor.getInt(OldAppDatabaseHelper.COLUMN_INDEX_STATE) + "\t" +
+                                    cursor.getLong(OldAppDatabaseHelper.COLUMN_INDEX_TIME) +"\n";
 
                             // Write data
                             fi.write(retItem.getBytes());

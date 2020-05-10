@@ -13,7 +13,7 @@ import android.provider.BaseColumns;
 public class CacheDatabaseHelper extends SQLiteOpenHelper {
 
     // Name db
-    private static final String DATABASE_NAME = "app_cache.db";
+    private static final String DATABASE_NAME = "app_cache_2.db";
     private static final int DATABASE_VERSION = 1;
 
     // Table
@@ -69,7 +69,7 @@ public class CacheDatabaseHelper extends SQLiteOpenHelper {
             // Bang tin tuong
             String createSessionTable = "create table if not exists " +
                     TABLE_NAME + " (" + BaseColumns._ID + " integer primary key autoincrement,"
-                    + COLUMN_CONNECT_BLID_ID + " text,"
+                    + COLUMN_CONNECT_BLID_ID + " BLOB,"
                     + COLUMN_CONNECT_MAC_ID + " text,"
                     + COLUMN_CONNECT_TIME + " long);";
             sqLiteDatabase.execSQL(createSessionTable);
@@ -104,11 +104,11 @@ public class CacheDatabaseHelper extends SQLiteOpenHelper {
 
     /**
      * Add conneted
-     * @param userId
+     * @param blid
      * @param macId
      * @return
      */
-    public long insertConnected(String userId, String macId) {
+    public long insertConnected(byte[] blid, String macId) {
         long ret = -1;
 
         // Open
@@ -117,7 +117,7 @@ public class CacheDatabaseHelper extends SQLiteOpenHelper {
         try {
             // Data insert
             final ContentValues contentValues = new ContentValues();
-            contentValues.put(COLUMN_CONNECT_BLID_ID, userId);
+            contentValues.put(COLUMN_CONNECT_BLID_ID, blid);
             contentValues.put(COLUMN_CONNECT_MAC_ID, macId);
             contentValues.put(COLUMN_CONNECT_TIME, System.currentTimeMillis());
 
@@ -135,8 +135,8 @@ public class CacheDatabaseHelper extends SQLiteOpenHelper {
      * @param macId
      * @return
      */
-    public String getBlid(String macId) {
-        String ret = "";
+    public byte[] getBluezoneId(String macId) {
+        byte[] ret = null;
 
         // Open
         openDatabase();
@@ -150,7 +150,7 @@ public class CacheDatabaseHelper extends SQLiteOpenHelper {
 
             // Check
             if (cursor != null && cursor.moveToFirst()) {
-                ret = cursor.getString(COLUMN_INDEX_BLID_ID);
+                ret = cursor.getBlob(COLUMN_INDEX_BLID_ID);
             }
         } catch (Exception e) {
             e.printStackTrace();

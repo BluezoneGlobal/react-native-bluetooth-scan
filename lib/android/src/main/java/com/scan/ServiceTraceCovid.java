@@ -38,6 +38,8 @@ import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 
 import com.facebook.react.bridge.ReactApplicationContext;
+import com.scan.bluezoneid.BluezoneIdGenerator;
+import com.scan.bluezoneid.BluezoneIdUtils;
 import com.scan.database.AppDatabaseHelper;
 import com.scan.database.CacheDatabaseHelper;
 import com.scan.model.ScanConfig;
@@ -45,14 +47,13 @@ import com.scan.preference.AppPreferenceManager;
 
 import org.json.JSONException;
 
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
 /**
- * Class service thực hiện viẹc phát và bắt các kết nối
+ * Class service Broadcast and Scan BLE
  * @author khanhxu
  */
 public class ServiceTraceCovid extends Service {
@@ -111,6 +112,7 @@ public class ServiceTraceCovid extends Service {
     private ScanConfig mScanConfigBle;
 
     // Config log
+    private boolean isConfigScanDevices = AppConstants.Config.IS_CONFIG_SCAN_DEVICES;
     private boolean isConfigLog = AppConstants.Config.IS_CONFIG_LOG_FILE;
     private boolean isConfigLogBattery = AppConstants.Config.IS_CONFIG_LOG_BATTERY;
 
@@ -238,6 +240,7 @@ public class ServiceTraceCovid extends Service {
         // Lay cofig
         isConfigLog = AppUtils.getConfigLogFile(getApplicationContext());
         isConfigLogBattery = AppUtils.getConfigLogBattery(getApplicationContext());
+        isConfigScanDevices = AppPreferenceManager.getInstance(getApplicationContext()).getConfigScanDevices();
 
         // Lay cac bien thoi gian
         mScanConfigBle = AppUtils.getConfigScan(reactContext, AppPreferenceManager.PreferenceConstants.CONFIG_SCAN_BLE);
@@ -558,8 +561,9 @@ public class ServiceTraceCovid extends Service {
                 // Advertise build
                 AdvertiseSettings.Builder advertiseSettings = new AdvertiseSettings.Builder();
 
-                // Che do low power
-                advertiseSettings.setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_POWER);
+                // Setting advertisde
+                advertiseSettings.setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY);
+                advertiseSettings.setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_LOW);
                 advertiseSettings.setConnectable(true);
 
                 // data advertise BLE
@@ -567,9 +571,16 @@ public class ServiceTraceCovid extends Service {
                 builder.setIncludeDeviceName(false);
                 builder.setIncludeTxPowerLevel(false);
 
-                // ghi ten vao manufacture
-                builder.addManufacturerData(AppConstants.BLE_ID,
-                        AppPreferenceManager.getInstance(getApplicationContext()).getBlid().getBytes(Charset.forName("UTF-8")));
+                byte[] bluezoneId = BluezoneIdGenerator.getInstance(getApplicationContext()).getBluezoneId();
+
+                if (BluezoneIdUtils.isBluezoneIdValidate(bluezoneId)) {
+                    // Emit bluezoneId Change
+                    moduleManager.emitBluezoneIdChange(AppUtils.convertBytesToHex(bluezoneId));
+                }
+
+                // Add Manufactor
+                builder.addManufacturerData(AppConstants.BLE_ID, bluezoneId);
+
                 builder.addServiceUuid(AppUtils.BLE_UUID_ANDROID);
 
                 // Callback start
@@ -600,7 +611,7 @@ public class ServiceTraceCovid extends Service {
                 // Start broadCast ble
                 mBluetoothLeAdvertiser.startAdvertising(advertiseSettings.build(), builder.build(), mAdvertiseCallback);
 
-                // Đăt lịch stop
+                // Init alarm stop
                 callAlarmTimer(TYPE_SCHEDULER_BROADCAST_BLE_STOP);
             }
         } catch (Exception e) {
@@ -644,40 +655,17 @@ public class ServiceTraceCovid extends Service {
                         mStatusScanBle = STATUS_SCANNING;
 
                         try {
-                            // Check du lieu
                             if (result != null) {
-                                // Value
-                                String userId = "";
+                                byte[] blidContact = null;
                                 String platform = "";
                                 int typeScan = 0;
 
                                 // Check uuid
-                                if (result.getScanRecord() != null && result.getScanRecord().getServiceUuids() != null) {
-                                    // Lay ParcelUuid so sanh ios, thi lay phan ten
-                                    if (result.getScanRecord().getServiceUuids().contains(AppUtils.BLE_UUID_IOS)) {
-                                        // Convert name
-                                        userId = AppUtils.convertUserId(result.getScanRecord().getDeviceName());
-
-                                        // ios
-                                        platform = "ios";
-                                        typeScan = 1;
-
-                                        // check
-                                        if (TextUtils.isEmpty(userId)) {
-                                            userId = result.getScanRecord().getDeviceName();
-                                            typeScan = 2;
-                                        }
-                                    } else {
-                                        // Lay data
-                                        byte[] data = result.getScanRecord().getManufacturerSpecificData(AppConstants.BLE_ID);
-
-                                        // Check
-                                        if (data != null && data.length > 0) {
-                                            // Lay ten tu Manufacturer
-                                            userId = new String(data, Charset.forName("UTF-8"));
-                                            typeScan = 3;
-                                        }
-                                    }
+                                if (result.getScanRecord() != null && result.getScanRecord().getServiceUuids() != null &&
+                                        result.getScanRecord().getServiceUuids().contains(AppUtils.BLE_UUID_ANDROID)) {
+                                    // Get data manufactor
+                                    blidContact = result.getScanRecord().getManufacturerSpecificData(AppConstants.BLE_ID);
+                                    typeScan = 3;
                                 } else if (result.getDevice() != null) { // check manufactor
                                     // Get Address
                                     String addressMac = result.getDevice().getAddress();
@@ -685,10 +673,10 @@ public class ServiceTraceCovid extends Service {
                                     // check
                                     if (!TextUtils.isEmpty(addressMac)) {
                                         // check thong tin blid tu mac
-                                        userId = CacheDatabaseHelper.getInstance(getApplicationContext()).getBlid(addressMac);
+                                        blidContact = CacheDatabaseHelper.getInstance(getApplicationContext()).getBluezoneId(addressMac);
 
                                         // check
-                                        if (!TextUtils.isEmpty(userId)) {
+                                        if (blidContact != null) {
                                             // ios
                                             platform = "ios";
                                             typeScan = 1;
@@ -714,16 +702,16 @@ public class ServiceTraceCovid extends Service {
                                 }
 
                                 // check
-                                if (!TextUtils.isEmpty(userId)) {
+                                if (BluezoneIdUtils.isBluezoneIdValidate(blidContact)) {
                                     // Insert db
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                        AppDatabaseHelper.getInstance(getApplicationContext()).insertUserIdTrace(userId, result.getRssi(), result.getTxPower());
+                                        AppDatabaseHelper.getInstance(getApplicationContext()).insertInfoTrace(blidContact, result.getRssi(), result.getTxPower());
                                     } else {
-                                        AppDatabaseHelper.getInstance(getApplicationContext()).insertUserIdTrace(userId, result.getRssi(), 0);
+                                        AppDatabaseHelper.getInstance(getApplicationContext()).insertInfoTrace(blidContact, result.getRssi(), 0);
                                     }
 
                                     // Notify
-                                    moduleManager.emit(userId, "", "", result.getRssi(), platform, typeScan);
+                                    moduleManager.emit(AppUtils.convertBytesToHex(blidContact), "", "", result.getRssi(), platform, typeScan);
                                 }
                             }
                         } catch (Exception e) {
@@ -814,7 +802,7 @@ public class ServiceTraceCovid extends Service {
     public void scanDevicesBluetooth() {
         try {
             // Check
-            if (mBluetoothAdapter != null && mStatusScanDevices == STATUS_SCAN_FINISH) {
+            if (isConfigScanDevices && mBluetoothAdapter != null && mStatusScanDevices == STATUS_SCAN_FINISH) {
                 // Set status
                 mStatusScanDevices = STATUS_SCAN_SETUP;
 
@@ -901,32 +889,17 @@ public class ServiceTraceCovid extends Service {
                     String platform = "";
                     int type = 0;
 
-                    // Check neu la LE
-                    if (!TextUtils.isEmpty(name) && bluetoothDevice.getType() == BluetoothDevice.DEVICE_TYPE_LE) {
-                        // Convert
-                        String userId = AppUtils.convertUserId(name);
-
-                        // check
-                        if(!TextUtils.isEmpty(userId)) {
-                            // Insert db
-                            AppDatabaseHelper.getInstance(getApplicationContext()).insertUserIdTrace(userId, rssi, 0);
-
-                            address = "";
-                            userIdRN = userId;
-                            platform = "ios";
-                            type = 4;
-                        }
-
-                    } else if (bluetoothDevice.getType() == BluetoothDevice.DEVICE_TYPE_CLASSIC && !TextUtils.isEmpty(address)) {
+                    // Check classic
+                    if (bluetoothDevice.getType() == BluetoothDevice.DEVICE_TYPE_CLASSIC && !TextUtils.isEmpty(address)) {
                         // Check rong
                         if (TextUtils.isEmpty(name)) {
                             // Insert db
-                            AppDatabaseHelper.getInstance(getApplicationContext()).insertMacIdTrace(address, "", rssi, 0);
+                            AppDatabaseHelper.getInstance(getApplicationContext()).insertMacIdTrace(address, rssi, 0);
                             nameRN = "No name";
                             type = 5;
                         } else {
                             // Insert db
-                            AppDatabaseHelper.getInstance(getApplicationContext()).insertMacIdTrace(address, name, rssi, 0);
+                            AppDatabaseHelper.getInstance(getApplicationContext()).insertMacIdTrace(address, rssi, 0);
                             nameRN = name;
                             type = 6;
                         }
@@ -1284,19 +1257,19 @@ public class ServiceTraceCovid extends Service {
                         super.onCharacteristicRead(gatt, characteristic, status);
                         try {
                             // Read Blid
-                            String blid = AppUtils.convertUserId(readValuesCharactic(characteristic));
+                            byte[] bluezoneId = readValuesCharactic(characteristic);
 
                             // check
-                            if (!TextUtils.isEmpty(blid)) {
+                            if (BluezoneIdUtils.isBluezoneIdValidate(bluezoneId)) {
 
                                 // Insert db
-                                AppDatabaseHelper.getInstance(getApplicationContext()).insertUserIdTrace(blid, -70, 0);
+                                AppDatabaseHelper.getInstance(getApplicationContext()).insertInfoTrace(bluezoneId, -70, 0);
 
                                 // Ghi ban len he thong
-                                moduleManager.emit(blid, "", "", -70, "ios", 1);
+                                moduleManager.emit(AppUtils.convertBytesToHex(bluezoneId), "", "", -70, "ios", 1);
 
                                 // insert cache
-                                CacheDatabaseHelper.getInstance(getApplicationContext()).insertConnected(blid, gatt.getDevice().getAddress());
+                                CacheDatabaseHelper.getInstance(getApplicationContext()).insertConnected(bluezoneId, gatt.getDevice().getAddress());
 
                                 // out
                                 mIsConnect = false;
@@ -1383,17 +1356,9 @@ public class ServiceTraceCovid extends Service {
          * @param characteristic
          * @return
          */
-        public String readValuesCharactic(BluetoothGattCharacteristic characteristic) {
+        public byte[] readValuesCharactic(BluetoothGattCharacteristic characteristic) {
             // Read and convert.
-            final byte[] data = characteristic.getValue();
-
-            // Check
-            if (data != null && data.length > 0) {
-
-                return new String(data);
-            }
-
-            return null;
+            return characteristic.getValue();
         }
     }
 }

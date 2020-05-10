@@ -34,7 +34,7 @@ public class ExternalDatabaseHelper extends SQLiteOpenHelper {
      * @param context
      */
     private ExternalDatabaseHelper(Context context, String fileBackup) {
-        super(context, fileBackup, null, AppDatabaseHelper.DATABASE_VERSION);
+        super(context, fileBackup, null, OldAppDatabaseHelper.DATABASE_VERSION);
     }
 
     @Override
@@ -87,12 +87,12 @@ public class ExternalDatabaseHelper extends SQLiteOpenHelper {
 
             // Data insert
             final ContentValues contentValues = new ContentValues();
-            contentValues.put(AppDatabaseHelper.COLUMN_NAMES_TIME, time);
-            contentValues.put(AppDatabaseHelper.COLUMN_NAMES_USER_ID, userId);
-            contentValues.put(AppDatabaseHelper.COLUMN_NAMES_RSSI, rssi);
+            contentValues.put(OldAppDatabaseHelper.COLUMN_NAMES_TIME, time);
+            contentValues.put(OldAppDatabaseHelper.COLUMN_NAMES_USER_ID, userId);
+            contentValues.put(OldAppDatabaseHelper.COLUMN_NAMES_RSSI, rssi);
 
             // insert
-            ret = mSqliteDatabase.insertOrThrow(AppDatabaseHelper.TABLE_NAME, null, contentValues);
+            ret = mSqliteDatabase.insertOrThrow(OldAppDatabaseHelper.TABLE_NAME, null, contentValues);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -117,13 +117,13 @@ public class ExternalDatabaseHelper extends SQLiteOpenHelper {
 
             // Data insert
             final ContentValues contentValues = new ContentValues();
-            contentValues.put(AppDatabaseHelper.COLUMN_NAMES_TIME, time);
-            contentValues.put(AppDatabaseHelper.COLUMN_NAMES_MAC_ID, macId);
-            contentValues.put(AppDatabaseHelper.COLUMN_NAMES_RSSI, rssi);
-            contentValues.put(AppDatabaseHelper.COLUMN_NAMES_DEVICES, devices);
+            contentValues.put(OldAppDatabaseHelper.COLUMN_NAMES_TIME, time);
+            contentValues.put(OldAppDatabaseHelper.COLUMN_NAMES_MAC_ID, macId);
+            contentValues.put(OldAppDatabaseHelper.COLUMN_NAMES_RSSI, rssi);
+            contentValues.put(OldAppDatabaseHelper.COLUMN_NAMES_DEVICES, devices);
 
             // insert
-            ret = mSqliteDatabase.insertOrThrow(AppDatabaseHelper.TABLE_NAME, null, contentValues);
+            ret = mSqliteDatabase.insertOrThrow(OldAppDatabaseHelper.TABLE_NAME, null, contentValues);
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -2,18 +2,9 @@ package com.scan.preference;
 
 import android.content.Context;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-
-import com.facebook.react.bridge.Dynamic;
-import com.facebook.react.bridge.ReadableArray;
-import com.facebook.react.bridge.ReadableMap;
-import com.facebook.react.bridge.ReadableMapKeySetIterator;
-import com.facebook.react.bridge.ReadableType;
-import com.facebook.react.bridge.WritableMap;
+import com.scan.AppConstants;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 
 /**
@@ -275,6 +266,21 @@ public class AppPreferenceManager extends AbstractPreferenceManager {
     }
 
     /**
+     * Set config scan devices
+     * @param isScan
+     */
+    public void setConfigScanDevices(boolean isScan) {
+        putBoolean(PreferenceConstants.CONFIG_SERVER_SCAN_DEVICES, isScan);
+    }
+
+    /**
+     * Get config scan devices
+     */
+    public boolean getConfigScanDevices() {
+        return getBoolean(PreferenceConstants.CONFIG_SERVER_SCAN_DEVICES, AppConstants.Config.IS_CONFIG_SCAN_DEVICES);
+    }
+
+    /**
      * Set language
      * @param language
      */
@@ -415,6 +421,7 @@ public class AppPreferenceManager extends AbstractPreferenceManager {
         public static final String CONFIG_SERVER_SCAN_DEVICES_INTERVAL = "server_scan_devices_interval";
         public static final String CONFIG_SERVER_ENABLE_BLUETOOTH_BATTERY_LEVEL = "sever_enable_bluetooth_battery_level";
         public static final String CONFIG_SERVER_ENABLE_BLUETOOTH_INTERVAL = "sever_enable_bluetooth_interval";
+        public static final String CONFIG_SERVER_SCAN_DEVICES = "sever_is_scan_devices";
         public static final String CONFIG_SERVER_INSERT_DB = "server_insert_db";
         public static final String CONFIG_SERVER_BACKUP_DB = "server_backup_db";
         public static final String CONFIG_SERVER_CHECK_NOTIFY_REQUEST_PERMISSON = "server_check_notify_request_";

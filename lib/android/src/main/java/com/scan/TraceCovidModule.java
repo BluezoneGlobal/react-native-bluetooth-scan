@@ -11,10 +11,12 @@ import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableArray;
+import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.facebook.react.uimanager.IllegalViewOperationException;
 import com.scan.backup.BackupUtils;
+import com.scan.bluezoneid.BluezoneIdUtils;
 import com.scan.preference.AppPreferenceManager;
 
 import androidx.annotation.NonNull;
@@ -141,13 +143,19 @@ public class TraceCovidModule extends ReactContextBaseJavaModule {
         promise.resolve(bluezoneId);
     }
 
-    public void emitEvent(String eventName, WritableMap params) {
-        sendEvent(reactContext, eventName, params);
+    @ReactMethod
+    public void getBluezoneId(Promise promise) {
+        String bzId = BluezoneIdUtils.getHexBluezoneId(reactContext);
+        promise.resolve(bzId);
     }
 
-    private void sendEvent(ReactContext reactContext, String eventName, @Nullable WritableMap params) {
+    public void emitEvent(String eventName, @Nullable Object data) {
+        sendEvent(reactContext, eventName, data);
+    }
+
+    private void sendEvent(ReactContext reactContext, String eventName, @Nullable Object data) {
         reactContext
                 .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                .emit(eventName, params);
+                .emit(eventName, data);
     }
 }

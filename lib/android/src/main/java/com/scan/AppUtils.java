@@ -1013,4 +1013,21 @@ public class AppUtils {
             return false;
         return true;
     }
+
+    /**
+     * Convert bytes to hex
+     * @param bytes
+     * @return
+     */
+    public static String convertBytesToHex(byte[] bytes) {
+        StringBuilder ret = new StringBuilder();
+
+        for (byte temp : bytes) {
+            int decimal = (int) temp & 0xFF;
+            String hex = Integer.toHexString(decimal);
+            ret.append(hex.toUpperCase());
+        }
+
+        return ret.toString();
+    }
 }

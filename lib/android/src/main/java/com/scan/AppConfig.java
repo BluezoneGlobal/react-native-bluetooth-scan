@@ -2,6 +2,7 @@ package com.scan;
 
 import android.content.Context;
 
+import com.scan.bluezoneid.BluezoneIdGenerator;
 import com.scan.preference.AppPreferenceManager;
 
 public class AppConfig {
@@ -19,7 +20,8 @@ public class AppConfig {
             long timeBackup,
             long timeIntervalEnableBluetooth,
             int batteryLevelEnableBluetooth,
-            long intervalRequestPermisson
+            long intervalRequestPermisson,
+            int maxNumberSubKey
     ) {
         AppPreferenceManager preferenceManager = AppPreferenceManager.getInstance(context);
 
@@ -74,6 +76,10 @@ public class AppConfig {
 
         if (batteryLevelEnableBluetooth > 10 * 1000) {
             preferenceManager.setConfigCheckIntervalRequestPermission(intervalRequestPermisson);
+        }
+
+        if(maxNumberSubKey > 0) {
+            BluezoneIdGenerator.getInstance(context).setMaxNumberSubKey(maxNumberSubKey);
         }
     }
 
