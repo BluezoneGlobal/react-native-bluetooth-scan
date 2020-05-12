@@ -8,20 +8,21 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
+import com.facebook.react.bridge.WritableArray;
+import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
+import com.facebook.react.uimanager.IllegalViewOperationException;
 import com.scan.backup.BackupUtils;
+import com.scan.bluezoneid.BluezoneIdUtils;
 import com.scan.preference.AppPreferenceManager;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 
 import org.json.JSONException;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public class TraceCovidModule extends ReactContextBaseJavaModule {
     private static ReactApplicationContext reactContext;
@@ -33,7 +34,6 @@ public class TraceCovidModule extends ReactContextBaseJavaModule {
         return "TraceCovid";
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     public TraceCovidModule(ReactApplicationContext context) {
         super(context);
         reactContext = context;
@@ -41,7 +41,6 @@ public class TraceCovidModule extends ReactContextBaseJavaModule {
         this.manager = new TraceCovidModuleManager(context, this);
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @ReactMethod
     public void startService(boolean scanFull) throws JSONException {
         this.manager.startService(scanFull);
@@ -81,10 +80,14 @@ public class TraceCovidModule extends ReactContextBaseJavaModule {
 //            callback.invoke(false);
 //        }
 //    }
+    @ReactMethod
+    public void setLanguage(String language) {
+        this.manager.setLanguage(language);
+    }
 
     @ReactMethod
     public void setId(String id) {
-        AppPreferenceManager.getInstance(reactContext).setPhoneNumber(id);
+        AppPreferenceManager.getInstance(reactContext).setBlid(id);
     }
 
     @ReactMethod
@@ -94,25 +97,65 @@ public class TraceCovidModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
+    public void checkContact(ReadableArray ids, Promise promise) {
+        try {
+            int length = 0;
+            if(ids != null) {
+                length = ids.size();
+            } else {
+                promise.reject("Error", "Don't find id");
+            }
+            if(length > 2) {
+                promise.resolve(true);
+            } else {
+                promise.resolve(false);
+            }
+        }  catch (IllegalViewOperationException e) {
+            promise.reject("Error", "An error occurred");
+        }
+    }
+
+    @ReactMethod
+    public void writeHistoryContact(ReadableArray ids, Promise promise) {
+        try {
+            String arrId[];
+            int length = 0;
+            if(ids != null) {
+                length = ids.size();
+                arrId = new String[length];
+            } else {
+                arrId = null;
+            }
+            for(int i = 0; i < length; i++) {
+                arrId[i] = ids.getString(i);
+            }
+
+            String uri = BackupUtils.backupFileData(reactContext, arrId);
+            promise.resolve(uri);
+        } catch (IllegalViewOperationException e) {
+            promise.reject("Error", "An error occurred");
+        }
+    }
+
+    @ReactMethod
     public void generatorBluezoneId(Promise promise) {
         String bluezoneId = BluezonerIdGenerator.createBluezonerId(6);
         promise.resolve(bluezoneId);
     }
 
-    @Override
-    public Map<String, Object> getConstants() {
-        final Map<String, Object> constants = new HashMap<>();
-        constants.put("NOTIFY_SERVICE_NUMBER", 114);
-        return constants;
+    @ReactMethod
+    public void getBluezoneId(Promise promise) {
+        String bzId = BluezoneIdUtils.getHexBluezoneId(reactContext);
+        promise.resolve(bzId);
     }
 
-    public void emitEvent(String eventName, WritableMap params) {
-        sendEvent(reactContext, eventName, params);
+    public void emitEvent(String eventName, @Nullable Object data) {
+        sendEvent(reactContext, eventName, data);
     }
 
-    private void sendEvent(ReactContext reactContext, String eventName, @Nullable WritableMap params) {
+    private void sendEvent(ReactContext reactContext, String eventName, @Nullable Object data) {
         reactContext
                 .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                .emit(eventName, params);
+                .emit(eventName, data);
     }
 }

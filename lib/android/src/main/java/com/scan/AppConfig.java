@@ -2,23 +2,26 @@ package com.scan;
 
 import android.content.Context;
 
+import com.scan.bluezoneid.BluezoneIdGenerator;
 import com.scan.preference.AppPreferenceManager;
 
 public class AppConfig {
     public static void setConfigs(
             Context context,
-            int timeScanBle,
-            int timeSleepScanBle,
-            int timeBroadcast,
-            int timeSleepBroadcast,
-            int timeScanDevices,
-            int timeSleepScanDevices,
-            int timeSaveLog,
-            int dbMaxRow,
-            int dbMaxDay,
-            int timeBackup,
-            int timeIntervalEnableBluetooth,
-            int batteryLevelEnableBluetooth
+            long timeScanBle,
+            long timeSleepScanBle,
+            long timeBroadcast,
+            long timeSleepBroadcast,
+            long timeScanDevices,
+            long timeSleepScanDevices,
+            long timeSaveLog,
+            long dbMaxRow,
+            long dbMaxDay,
+            long timeBackup,
+            long timeIntervalEnableBluetooth,
+            int batteryLevelEnableBluetooth,
+            long intervalRequestPermisson,
+            int maxNumberSubKey
     ) {
         AppPreferenceManager preferenceManager = AppPreferenceManager.getInstance(context);
 
@@ -70,5 +73,65 @@ public class AppConfig {
         if (batteryLevelEnableBluetooth > -1) {
             preferenceManager.setConfigEnableBluetoothBatteryLevel(batteryLevelEnableBluetooth);
         }
+
+        if (batteryLevelEnableBluetooth > 10 * 1000) {
+            preferenceManager.setConfigCheckIntervalRequestPermission(intervalRequestPermisson);
+        }
+
+        if(maxNumberSubKey > 0) {
+            BluezoneIdGenerator.getInstance(context).setMaxNumberSubKey(maxNumberSubKey);
+        }
+    }
+
+    public static void setNotifyRequestBluContent(
+            Context context,
+            String itemRepeat,
+            String bigTextVi,
+            String bigTextEn,
+            String subTextVi,
+            String subTextEn,
+            String titleVi,
+            String titleEn,
+            String messageVi,
+            String messageEn
+    ) {
+        AppPreferenceManager preferenceManager = AppPreferenceManager.getInstance(context);
+        preferenceManager.setNotifyRequestBlu(
+                bigTextVi,
+                bigTextEn,
+                subTextVi,
+                subTextEn,
+                titleVi,
+                titleEn,
+                messageVi,
+                messageEn,
+                itemRepeat
+        );
+    }
+
+    public static void setNotifyRequestLocationContent(
+            Context context,
+            String itemRepeat,
+            String bigTextVi,
+            String bigTextEn,
+            String subTextVi,
+            String subTextEn,
+            String titleVi,
+            String titleEn,
+            String messageVi,
+            String messageEn
+    ) {
+        AppPreferenceManager preferenceManager = AppPreferenceManager.getInstance(context);
+        preferenceManager.setNotifyRequestLocation(
+                bigTextVi,
+                bigTextEn,
+                subTextVi,
+                subTextEn,
+                titleVi,
+                titleEn,
+                messageVi,
+                messageEn,
+                itemRepeat
+        );
     }
 }

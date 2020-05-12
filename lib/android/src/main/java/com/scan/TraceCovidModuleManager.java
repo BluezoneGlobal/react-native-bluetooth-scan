@@ -3,24 +3,13 @@ package com.scan;
 import android.content.Intent;
 import android.os.Build;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.facebook.react.bridge.Arguments;
-import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.ReactApplicationContext;
-import com.facebook.react.bridge.ReactContext;
-import com.facebook.react.bridge.ReactContextBaseJavaModule;
-import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableMap;
-import com.facebook.react.bridge.WritableNativeMap;
-import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.scan.apis.AsyncStorageApi;
-import com.scan.backup.BackupUtils;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
+import com.scan.preference.AppPreferenceManager;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -32,7 +21,6 @@ public class TraceCovidModuleManager {
     public TraceCovidModule traceCovidModule;
     public AsyncStorageApi storageApi;
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     public TraceCovidModuleManager(ReactApplicationContext reactContext, TraceCovidModule traceCovidModule) {
         this.reactContext = reactContext;
         this.traceCovidModule = traceCovidModule;
@@ -40,12 +28,12 @@ public class TraceCovidModuleManager {
         storageApi = new AsyncStorageApi(reactContext);
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     public void startService(boolean scanFull) throws JSONException {
         Intent intent = new Intent(reactContext, ServiceTraceCovid.class);
         Log.e("Scan Full: ", scanFull ? "true" : "false");
 
         intent.putExtra(ServiceTraceCovid.EXTRA_SCHEDULER_TYPE, scanFull ? ServiceTraceCovid.TYPE_SCAN_FULL : ServiceTraceCovid.TYPE_APP_EXIT);
+//        intent.putExtra("language", language);
 
         // File dir = reactContext.getDatabasePath("app_db.db");
 
@@ -82,6 +70,8 @@ public class TraceCovidModuleManager {
 
             int timeIntervalEnableBluetooth = json.has("TimeEnableBluetooth") ? json.getInt("TimeEnableBluetooth") : -1;
             int batteryLevelEnableBluetooth = json.has("BatteryEnableBluetooth") ? json.getInt("BatteryEnableBluetooth") : -1;
+            int intervalRequestPermisson = json.has("IntervalRequestPermisson") ? json.getInt("IntervalRequestPermisson") : -1;
+            int maxNumberSubKey = json.has("MaxNumberSubKey") ? json.getInt("MaxNumberSubKey") : -1;
 
             AppConfig.setConfigs(
                     reactContext,
@@ -96,7 +86,9 @@ public class TraceCovidModuleManager {
                     dbMaxDay,
                     timeBackup,
                     timeIntervalEnableBluetooth,
-                    batteryLevelEnableBluetooth
+                    batteryLevelEnableBluetooth,
+                    intervalRequestPermisson,
+                    maxNumberSubKey
             );
         }
         catch (Exception e) {
@@ -117,6 +109,8 @@ public class TraceCovidModuleManager {
         int timeBackup = configs.hasKey("TimeBackup") ? configs.getInt("TimeBackup") : -1;
         int timeIntervalEnableBluetooth = configs.hasKey("TimeEnableBluetooth") ? configs.getInt("TimeEnableBluetooth") : -1;
         int batteryLevelEnableBluetooth = configs.hasKey("BatteryEnableBluetooth") ? configs.getInt("BatteryEnableBluetooth") : -1;
+        int intervalRequestPermisson = configs.hasKey("IntervalRequestPermisson") ? configs.getInt("IntervalRequestPermisson") : -1;
+        int maxNumberSubKey = configs.hasKey("MaxNumberSubKey") ? configs.getInt("MaxNumberSubKey") : -1;
         AppConfig.setConfigs(
                 reactContext,
                 timeScanBleRun,
@@ -130,8 +124,64 @@ public class TraceCovidModuleManager {
                 dbMaxDay,
                 timeBackup,
                 timeIntervalEnableBluetooth,
-                batteryLevelEnableBluetooth
+                batteryLevelEnableBluetooth,
+                intervalRequestPermisson,
+                maxNumberSubKey
         );
+
+        ReadableMap notifyRequestBluetooth = configs.hasKey("NotificationRequestBluetooth") ? configs.getMap("NotificationRequestBluetooth") : null;
+        if(notifyRequestBluetooth != null) {
+            String itemRepeat = notifyRequestBluetooth.hasKey("itemRepeat") ? notifyRequestBluetooth.getArray("itemRepeat").toString() : "";
+            String bigTextVi = notifyRequestBluetooth.hasKey("bigText") ? notifyRequestBluetooth.getString("bigText") : "";
+            String bigTextEn = notifyRequestBluetooth.hasKey("bigText_en") ? notifyRequestBluetooth.getString("bigText_en") : "";
+            String subTextVi = notifyRequestBluetooth.hasKey("subText") ? notifyRequestBluetooth.getString("subText") : "";
+            String subTextEn = notifyRequestBluetooth.hasKey("subText_en") ? notifyRequestBluetooth.getString("subText_en") : "";
+            String titleVi = notifyRequestBluetooth.hasKey("title") ? notifyRequestBluetooth.getString("title") : "";
+            String titleEn = notifyRequestBluetooth.hasKey("title_en") ? notifyRequestBluetooth.getString("title_en") : "";
+            String messageVi = notifyRequestBluetooth.hasKey("message") ? notifyRequestBluetooth.getString("message") : "";
+            String messageEn = notifyRequestBluetooth.hasKey("message_en") ? notifyRequestBluetooth.getString("message_en") : "";
+            AppConfig.setNotifyRequestBluContent(reactContext, itemRepeat, bigTextVi, bigTextEn, subTextVi, subTextEn, titleVi, titleEn, messageVi, messageEn);
+        }
+
+        ReadableMap notifyRequestLocation = configs.hasKey("NotificationRequestLocation") ? configs.getMap("NotificationRequestLocation") : null;
+        if(notifyRequestLocation != null) {
+            String itemRepeat = notifyRequestLocation.hasKey("itemRepeat") ? notifyRequestLocation.getArray("itemRepeat").toString() : "";
+            String bigTextVi = notifyRequestLocation.hasKey("bigText") ? notifyRequestLocation.getString("bigText") : "";
+            String bigTextEn = notifyRequestLocation.hasKey("bigText_en") ? notifyRequestLocation.getString("bigText_en") : "";
+            String subTextVi = notifyRequestLocation.hasKey("subText") ? notifyRequestLocation.getString("subText") : "";
+            String subTextEn = notifyRequestLocation.hasKey("subText_en") ? notifyRequestLocation.getString("subText_en") : "";
+            String titleVi = notifyRequestLocation.hasKey("title") ? notifyRequestLocation.getString("title") : "";
+            String titleEn = notifyRequestLocation.hasKey("title_en") ? notifyRequestLocation.getString("title_en") : "";
+            String messageVi = notifyRequestLocation.hasKey("message") ? notifyRequestLocation.getString("message") : "";
+            String messageEn = notifyRequestLocation.hasKey("message_en") ? notifyRequestLocation.getString("message_en") : "";
+            AppConfig.setNotifyRequestLocationContent(reactContext, itemRepeat, bigTextVi, bigTextEn, subTextVi, subTextEn, titleVi, titleEn, messageVi, messageEn);
+        }
+
+        ReadableMap notifyRequestPermisson = configs.hasKey("NotificationRequestPermissonAndroid") ? configs.getMap("NotificationRequestPermissonAndroid") : null;
+        if(notifyRequestLocation != null) {
+            String itemRepeat = notifyRequestPermisson.hasKey("itemRepeat") ? notifyRequestPermisson.getArray("itemRepeat").toString() : "";
+            String bigTextVi = notifyRequestPermisson.hasKey("bigText") ? notifyRequestPermisson.getString("bigText") : "";
+            String bigTextEn = notifyRequestPermisson.hasKey("bigText_en") ? notifyRequestPermisson.getString("bigText_en") : "";
+            String subTextVi = notifyRequestPermisson.hasKey("subText") ? notifyRequestPermisson.getString("subText") : "";
+            String subTextEn = notifyRequestPermisson.hasKey("subText_en") ? notifyRequestPermisson.getString("subText_en") : "";
+            String titleVi = notifyRequestPermisson.hasKey("title") ? notifyRequestPermisson.getString("title") : "";
+            String titleEn = notifyRequestPermisson.hasKey("title_en") ? notifyRequestPermisson.getString("title_en") : "";
+            String messageVi = notifyRequestPermisson.hasKey("message") ? notifyRequestPermisson.getString("message") : "";
+            String messageEn = notifyRequestPermisson.hasKey("message_en") ? notifyRequestPermisson.getString("message_en") : "";
+
+            AppPreferenceManager preferenceManager = AppPreferenceManager.getInstance(reactContext);
+            preferenceManager.setNotifyRequestPermisson(
+                    bigTextVi,
+                    bigTextEn,
+                    subTextVi,
+                    subTextEn,
+                    titleVi,
+                    titleEn,
+                    messageVi,
+                    messageEn,
+                    itemRepeat
+            );
+        }
     }
 
 //    public WritableMap getConfig () {
@@ -178,5 +228,14 @@ public class TraceCovidModuleManager {
         params.putString("platform", platform);
         params.putInt("typeScan", type);
         traceCovidModule.emitEvent("onScanBlueToothResult", params);
+    }
+
+    public void emitBluezoneIdChange(String bluezoneId) {
+        traceCovidModule.emitEvent("onBluezoneIdChange", bluezoneId);
+    }
+
+    public void setLanguage(String language) {
+        AppPreferenceManager.getInstance(reactContext).setLanguage(language);
+        AppUtils.changeLanguageNotification(reactContext, language);
     }
 }
