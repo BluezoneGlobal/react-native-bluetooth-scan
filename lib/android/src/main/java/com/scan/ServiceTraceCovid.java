@@ -1,8 +1,14 @@
 package com.scan;
 
+import android.Manifest;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCallback;
+import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattService;
+import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.AdvertiseCallback;
 import android.bluetooth.le.AdvertiseData;
 import android.bluetooth.le.AdvertiseSettings;
@@ -16,29 +22,40 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
+import android.location.LocationManager;
+import android.os.AsyncTask;
 import android.os.BatteryManager;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.SystemClock;
+import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
+import androidx.core.content.ContextCompat;
 
 import com.facebook.react.bridge.ReactApplicationContext;
+import com.scan.bluezoneid.BluezoneIdGenerator;
+import com.scan.bluezoneid.BluezoneIdUtils;
 import com.scan.database.AppDatabaseHelper;
+import com.scan.database.CacheDatabaseHelper;
 import com.scan.model.ScanConfig;
 import com.scan.preference.AppPreferenceManager;
 
-import java.nio.charset.Charset;
+import org.json.JSONException;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
- * Class service thực hiện viẹc phát và bắt các kết nối
+ * Class service Broadcast and Scan BLE
  * @author khanhxu
  */
-@RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
 public class ServiceTraceCovid extends Service {
     // Context
     public static ReactApplicationContext reactContext;
@@ -58,6 +75,8 @@ public class ServiceTraceCovid extends Service {
     public static final int TYPE_SCHEDULER_BROADCAST_BLE_STOP = 4;
     public static final int TYPE_SCHEDULER_SCAN_DEVICES = 5;
     public static final int TYPE_SCHEDULER_SCAN_DEVICES_STOP = 6;
+    public static final int TYPE_SCHEDULER_SCAN_FULL = 7;
+    public static final int TYPE_SCHEDULER_SCAN_FULL_STOP = 8;
     public static final int TYPE_SCHEDULER_ENABLE_BLUETOOTH = 10;
     public static final int TYPE_SCAN_FULL = 90;
     public static final int TYPE_APP_EXIT = 91;
@@ -65,6 +84,7 @@ public class ServiceTraceCovid extends Service {
     // Services callback
     private BatteryReceiver mReceiverBattery;
     private BluetoothChangedReceiver mReceiverBluetoothChanged;
+    private LocationChangedReceiver mReceiverLocationChanged;
 
     // Status Scan
     public static final int STATUS_SCAN_FINISH = 0;
@@ -92,14 +112,26 @@ public class ServiceTraceCovid extends Service {
     private ScanConfig mScanConfigBle;
 
     // Config log
+    private boolean isConfigScanDevices = AppConstants.Config.IS_CONFIG_SCAN_DEVICES;
     private boolean isConfigLog = AppConstants.Config.IS_CONFIG_LOG_FILE;
     private boolean isConfigLogBattery = AppConstants.Config.IS_CONFIG_LOG_BATTERY;
 
     // Vả Scan
     private int mModeScan = MODE_SCAN_SCHEDULER;
+
     // cac mode
     public static final int MODE_SCAN_FULL = 1;
     public static final int MODE_SCAN_SCHEDULER = 2;
+
+    // Scan
+    List<ScanResult> mScanResultList;
+    List<String> mMacConnectList;
+
+    // Bluetooth Gatt
+    BluetoothGatt mBluetoothGatt;
+    ConnectTask mConnectTask;
+
+    final Handler handler = new Handler();
 
     @Nullable
     @Override
@@ -122,6 +154,40 @@ public class ServiceTraceCovid extends Service {
 
         // Init status
         initStatus();
+
+        // Array
+        mScanResultList = new ArrayList<>();
+        mMacConnectList = new ArrayList<>();
+
+        Timer timer = new Timer();
+        TimerTask timerTask = new TimerTask() {
+            public void run() {
+                // use a handler to run a toast that shows the current timestamp
+                handler.post(new Runnable() {
+                    public void run() {
+
+                        if (mModeScan != MODE_SCAN_FULL) {
+                            if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                                // Create notify schuled
+                                try {
+                                    AppUtils.createNotifyRequestPermisson(getApplicationContext());
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
+                            } else {
+                                // Permission granted
+                                try {
+                                    AppUtils.clearNotifyRequestPermisson(getApplicationContext());
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        };
+        timer.schedule(timerTask, 10000, AppPreferenceManager.getInstance(getApplicationContext()).getConfigCheckIntervalRequestPermission(AppConstants.Config.DEFAULT_INTERVAL_CHECK_PERMISSON)); //
     }
 
     /**
@@ -153,7 +219,7 @@ public class ServiceTraceCovid extends Service {
         initScheduler(intent);
 
         // Check
-        if (!AppUtils.enableBluetooth()) {
+        if (AppUtils.enableBluetooth()) {
             // Start tat ca
             startAll();
         }
@@ -174,12 +240,14 @@ public class ServiceTraceCovid extends Service {
         // Lay cofig
         isConfigLog = AppUtils.getConfigLogFile(getApplicationContext());
         isConfigLogBattery = AppUtils.getConfigLogBattery(getApplicationContext());
+        isConfigScanDevices = AppPreferenceManager.getInstance(getApplicationContext()).getConfigScanDevices();
 
         // Lay cac bien thoi gian
         mScanConfigBle = AppUtils.getConfigScan(reactContext, AppPreferenceManager.PreferenceConstants.CONFIG_SCAN_BLE);
         mScanConfigBroadcastBle = AppUtils.getConfigScan(reactContext, AppPreferenceManager.PreferenceConstants.CONFIG_BROADCAST_BLE);
         mScanConfigDevices = AppUtils.getConfigScan(reactContext, AppPreferenceManager.PreferenceConstants.CONFIG_SCAN_DEVICES);
 
+        // Log
         writeLog("mScanConfigBle: " + mScanConfigBle.getDuration() + ":" + mScanConfigBle.getInterval());
         writeLog("mScanConfigBroadcastBle: " + mScanConfigBroadcastBle.getDuration() + ":" + mScanConfigBroadcastBle.getInterval());
         writeLog("mScanConfigDevices: " + mScanConfigDevices.getDuration() + ":" + mScanConfigDevices.getInterval());
@@ -299,6 +367,9 @@ public class ServiceTraceCovid extends Service {
 
                         // Scan lai tu dau
                         mModeScan = MODE_SCAN_FULL;
+
+                        // Đặt lịch stop
+                        callAlarmTimer(TYPE_SCHEDULER_SCAN_FULL_STOP);
                     }
 
                     break;
@@ -316,7 +387,6 @@ public class ServiceTraceCovid extends Service {
                         callAlarmTimer(TYPE_SCHEDULER_BROADCAST_BLE_STOP);
                         callAlarmTimer(TYPE_SCHEDULER_SCAN_DEVICES_STOP);
                     }
-
                     break;
                 case TYPE_SCHEDULER_ENABLE_BLUETOOTH:
                     // Get battery level
@@ -326,6 +396,31 @@ public class ServiceTraceCovid extends Service {
                     if (!AppUtils.enableBluetooth(getApplicationContext(), batteryLevel)) {
                         // Đặt lịch bật lại
                         callAlarmTimer(TYPE_SCHEDULER_ENABLE_BLUETOOTH);
+                    }
+                    break;
+                case TYPE_SCHEDULER_SCAN_FULL:
+                    // Check
+                    if (mModeScan == MODE_SCAN_FULL) {
+                        writeLog("scheduler scan full");
+
+                        // Huy dang ki
+                        initStatus();
+
+                        // Đặt lịch scan full
+                        callAlarmTimer(TYPE_SCHEDULER_SCAN_FULL_STOP);
+                    }
+                    break;
+
+                case TYPE_SCHEDULER_SCAN_FULL_STOP:
+                    // Check
+                    if (mModeScan == MODE_SCAN_FULL) {
+                        writeLog("scheduler scan full: Stop");
+
+                        // Huy dang ki
+                        stopBluetoothFeature();
+
+                        // Đặt lịch scan full
+                        callAlarmTimer(TYPE_SCHEDULER_SCAN_FULL);
                     }
                     break;
             }
@@ -394,6 +489,14 @@ public class ServiceTraceCovid extends Service {
             }
         } else {
             switch (typeScheduler) {
+                case TYPE_SCHEDULER_SCAN_FULL:
+                    // Dat timer
+                    initAlarmTimer(TYPE_SCHEDULER_SCAN_FULL, TYPE_SCHEDULER_SCAN_FULL, AppConstants.Config.DEFAULT_FULL_INTERVAL);
+                    break;
+                case TYPE_SCHEDULER_SCAN_FULL_STOP:
+                    // Dat timer
+                    initAlarmTimer(TYPE_SCHEDULER_SCAN_FULL_STOP, TYPE_SCHEDULER_SCAN_FULL_STOP, AppConstants.Config.DEFAULT_FULL_DURATION);
+                    break;
                 case TYPE_SCHEDULER_ENABLE_BLUETOOTH:
                     // Dat timer enable bluetooth
                     initAlarmTimer(TYPE_SCHEDULER_ENABLE_BLUETOOTH, TYPE_SCHEDULER_ENABLE_BLUETOOTH,
@@ -458,8 +561,9 @@ public class ServiceTraceCovid extends Service {
                 // Advertise build
                 AdvertiseSettings.Builder advertiseSettings = new AdvertiseSettings.Builder();
 
-                // Che do low power
-                advertiseSettings.setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_POWER);
+                // Setting advertisde
+                advertiseSettings.setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY);
+                advertiseSettings.setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_LOW);
                 advertiseSettings.setConnectable(true);
 
                 // data advertise BLE
@@ -467,9 +571,16 @@ public class ServiceTraceCovid extends Service {
                 builder.setIncludeDeviceName(false);
                 builder.setIncludeTxPowerLevel(false);
 
-                // ghi ten vao manufacture
-                builder.addManufacturerData(AppConstants.BLE_ID,
-                        AppPreferenceManager.getInstance(getApplicationContext()).getPhoneNumber().getBytes(Charset.forName("UTF-8")));
+                byte[] bluezoneId = BluezoneIdGenerator.getInstance(getApplicationContext()).getBluezoneId();
+
+                if (BluezoneIdUtils.isBluezoneIdValidate(bluezoneId)) {
+                    // Emit bluezoneId Change
+                    moduleManager.emitBluezoneIdChange(AppUtils.convertBytesToHex(bluezoneId));
+                }
+
+                // Add Manufactor
+                builder.addManufacturerData(AppConstants.BLE_ID, bluezoneId);
+
                 builder.addServiceUuid(AppUtils.BLE_UUID_ANDROID);
 
                 // Callback start
@@ -500,7 +611,7 @@ public class ServiceTraceCovid extends Service {
                 // Start broadCast ble
                 mBluetoothLeAdvertiser.startAdvertising(advertiseSettings.build(), builder.build(), mAdvertiseCallback);
 
-                // Đăt lịch stop
+                // Init alarm stop
                 callAlarmTimer(TYPE_SCHEDULER_BROADCAST_BLE_STOP);
             }
         } catch (Exception e) {
@@ -543,49 +654,64 @@ public class ServiceTraceCovid extends Service {
                         // Status
                         mStatusScanBle = STATUS_SCANNING;
 
-                        // log
-                        // writeLog("startScanBle : onScanResult");
-
                         try {
-                            // Check du lieu
-                            if (result != null && result.getScanRecord() != null && result.getScanRecord().getServiceUuids() != null) {
-                                String userId = "";
+                            if (result != null) {
+                                byte[] blidContact = null;
                                 String platform = "";
                                 int typeScan = 0;
-                                // Lay ParcelUuid so sanh ios, thi lay phan ten
-                                if (result.getScanRecord().getServiceUuids().contains(AppUtils.BLE_UUID_IOS)) {
-                                    // Convert name
-                                    userId = AppUtils.convertUserId(result.getScanRecord().getDeviceName());
 
-                                    platform = "ios";
-                                    typeScan = 1;
+                                // Check uuid
+                                if (result.getScanRecord() != null && result.getScanRecord().getServiceUuids() != null &&
+                                        result.getScanRecord().getServiceUuids().contains(AppUtils.BLE_UUID_ANDROID)) {
+                                    // Get data manufactor
+                                    blidContact = result.getScanRecord().getManufacturerSpecificData(AppConstants.BLE_ID);
+                                    typeScan = 3;
+                                } else if (result.getDevice() != null) { // check manufactor
+                                    // Get Address
+                                    String addressMac = result.getDevice().getAddress();
 
                                     // check
-                                    if (TextUtils.isEmpty(userId)) {
-                                        userId = result.getScanRecord().getDeviceName();
-                                        typeScan = 2;
-                                    }
-                                } else {
-                                    byte[] data = result.getScanRecord().getManufacturerSpecificData(AppConstants.BLE_ID);
-                                    // byte[] data = result.getScanRecord().getServiceData(AppUtils.BLE_UUID_ANDROID);
+                                    if (!TextUtils.isEmpty(addressMac)) {
+                                        // check thong tin blid tu mac
+                                        blidContact = CacheDatabaseHelper.getInstance(getApplicationContext()).getBluezoneId(addressMac);
 
-                                    // Check
-                                    if (data != null && data.length > 0) {
-                                        // Lay ten tu Manufacturer
-                                        userId = new String(data, Charset.forName("UTF-8"));
-                                        typeScan = 3;
+                                        // check
+                                        if (blidContact != null) {
+                                            // ios
+                                            platform = "ios";
+                                            typeScan = 1;
+                                        } else {
+                                            // Add list
+                                            if (!mMacConnectList.contains(addressMac)) {
+                                                mScanResultList.add(result);
+                                                mMacConnectList.add(addressMac);
+                                            }
+
+                                            // Check
+                                            if (mScanResultList.size() > 0) {
+                                                // Check running
+                                                if (mConnectTask == null) {
+                                                    mConnectTask = new ConnectTask();
+                                                    mConnectTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                                                } else if (mConnectTask.getStatus() == AsyncTask.Status.FINISHED) {
+                                                    mConnectTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                                                }
+                                            }
+                                        }
                                     }
                                 }
 
                                 // check
-                                if (!TextUtils.isEmpty(userId)) {
-                                    // Log
-                                    // writeLog("startScanBle : data = " + userId);
-
+                                if (BluezoneIdUtils.isBluezoneIdValidate(blidContact)) {
                                     // Insert db
-                                    AppDatabaseHelper.getInstance(getApplicationContext()).insertUserIdTrace(userId, result.getRssi());
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                        AppDatabaseHelper.getInstance(getApplicationContext()).insertInfoTrace(blidContact, result.getRssi(), result.getTxPower());
+                                    } else {
+                                        AppDatabaseHelper.getInstance(getApplicationContext()).insertInfoTrace(blidContact, result.getRssi(), 0);
+                                    }
 
-                                    moduleManager.emit(userId, "", "", result.getRssi(), platform, typeScan);
+                                    // Notify
+                                    moduleManager.emit(AppUtils.convertBytesToHex(blidContact), "", "", result.getRssi(), platform, typeScan);
                                 }
                             }
                         } catch (Exception e) {
@@ -615,17 +741,35 @@ public class ServiceTraceCovid extends Service {
                     }
                 };
 
-                // build scan setting
+                // Build scan setting
                 ScanSettings.Builder scanSettings = new ScanSettings.Builder();
                 scanSettings.setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY);
 
-                // build bo loc
-                ScanFilter.Builder scanFilterAndroid = new ScanFilter.Builder();
-                List<ScanFilter> list = new ArrayList<>();
-                list.add(scanFilterAndroid.build());
+                // Build filter ios
+                ScanFilter.Builder scanFilterIos = new ScanFilter.Builder();
+                scanFilterIos.setServiceUuid(AppUtils.BLE_UUID_IOS);
 
-                // start scan
-                mBluetoothLeScanner.startScan(list, scanSettings.build(), mScanCallback);
+                // Build filter ios manufactor
+                ScanFilter.Builder scanFilterIosManu = new ScanFilter.Builder();
+                scanFilterIosManu.setManufacturerData(AppConstants.DEFAUT_MANUFACTOR_IOS, AppConstants.DEFAUT_MANUFACTOR_BYTE_IOS);
+
+                // Build filter ios manufactor
+                ScanFilter.Builder scanFilterIosManuX = new ScanFilter.Builder();
+                scanFilterIosManuX.setManufacturerData(AppConstants.DEFAUT_MANUFACTOR_IOS, AppConstants.DEFAUT_MANUFACTOR_BYTE_IOS_X);
+
+                // Build filter Android
+                ScanFilter.Builder scanFilterAndroid = new ScanFilter.Builder();
+                scanFilterAndroid.setServiceUuid(AppUtils.BLE_UUID_ANDROID);
+
+                // Add filter
+                List<ScanFilter> listFilter = new ArrayList<>();
+                listFilter.add(scanFilterIos.build());
+                listFilter.add(scanFilterIosManu.build());
+                listFilter.add(scanFilterIosManuX.build());
+                listFilter.add(scanFilterAndroid.build());
+
+                // Start scan
+                mBluetoothLeScanner.startScan(listFilter, scanSettings.build(), mScanCallback);
 
                 // Status
                 mStatusScanBle = STATUS_SCANNING;
@@ -658,7 +802,7 @@ public class ServiceTraceCovid extends Service {
     public void scanDevicesBluetooth() {
         try {
             // Check
-            if (mBluetoothAdapter != null && mStatusScanDevices == STATUS_SCAN_FINISH) {
+            if (isConfigScanDevices && mBluetoothAdapter != null && mStatusScanDevices == STATUS_SCAN_FINISH) {
                 // Set status
                 mStatusScanDevices = STATUS_SCAN_SETUP;
 
@@ -745,40 +889,17 @@ public class ServiceTraceCovid extends Service {
                     String platform = "";
                     int type = 0;
 
-                    // Check neu la LE
-                    if (!TextUtils.isEmpty(name) && bluetoothDevice.getType() == BluetoothDevice.DEVICE_TYPE_LE) {
-                        // Convert
-                        String userId = AppUtils.convertUserId(name);
-
-                        // check
-                        if(!TextUtils.isEmpty(userId)) {
-                            // Log
-                            writeLog("Devices - BLE: " + userId + " - RSSI: " + rssi);
-
-                            AppDatabaseHelper.getInstance(getApplicationContext()).insertUserIdTrace(userId, rssi);
-
-                            address = "";
-                            userIdRN = userId;
-                            platform = "ios";
-                            type = 4;
-                        }
-
-                    } else if (bluetoothDevice.getType() == BluetoothDevice.DEVICE_TYPE_CLASSIC && !TextUtils.isEmpty(address)) {
+                    // Check classic
+                    if (bluetoothDevice.getType() == BluetoothDevice.DEVICE_TYPE_CLASSIC && !TextUtils.isEmpty(address)) {
                         // Check rong
                         if (TextUtils.isEmpty(name)) {
-                            // Log
-                            writeLog("Devices - Device - Noname: " + address  + " - RSSI: " + rssi);
-
-                            // Gi DB
-                            AppDatabaseHelper.getInstance(getApplicationContext()).insertMacIdTrace(address, "", rssi);
+                            // Insert db
+                            AppDatabaseHelper.getInstance(getApplicationContext()).insertMacIdTrace(address, rssi, 0);
                             nameRN = "No name";
                             type = 5;
                         } else {
-                            // Log
-                            writeLog("Devices - Device: " + name + " : " + address  + " - RSSI: " + rssi);
-
-                            // Ghi DB
-                            AppDatabaseHelper.getInstance(getApplicationContext()).insertMacIdTrace(address, name, rssi);
+                            // Insert db
+                            AppDatabaseHelper.getInstance(getApplicationContext()).insertMacIdTrace(address, rssi, 0);
                             nameRN = name;
                             type = 6;
                         }
@@ -824,6 +945,15 @@ public class ServiceTraceCovid extends Service {
                 intentFilter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
                 registerReceiver(mReceiverBluetoothChanged, intentFilter);
             }
+
+            // -----------------------------------------------------------
+            if (mReceiverLocationChanged == null) {
+                mReceiverLocationChanged = new LocationChangedReceiver();
+                IntentFilter intentFilter = new IntentFilter();
+//                intentFilter.addAction(ACTION_RECEIVER_STOP);
+                intentFilter.addAction(LocationManager.MODE_CHANGED_ACTION);
+                registerReceiver(mReceiverLocationChanged, intentFilter);
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -865,19 +995,37 @@ public class ServiceTraceCovid extends Service {
                                 // Log
                                 writeLog("Bluetooth : OFF");
 
-                                // Timer enable bluetooth
-                                callAlarmTimer(TYPE_SCHEDULER_ENABLE_BLUETOOTH);
+                                // Timer enable bluetooth => Not auto enable bluetooth
+                                // callAlarmTimer(TYPE_SCHEDULER_ENABLE_BLUETOOTH);
+
+                                // App luncher
+                                if(mModeScan != MODE_SCAN_FULL) {
+                                    // Create notify bluetooth
+                                    try {
+                                        AppUtils.createNotifyRequestBluetooth(getApplicationContext());
+                                    } catch (JSONException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
                                 break;
                             case BluetoothAdapter.STATE_TURNING_OFF:
                                 // Log
                                 writeLog("Bluetooth : OFF ing");
-                                // Stop tat ca
 
+                                // init scan
+                                initStatus();
+
+                                // Stop
                                 stopBluetoothFeature();
                                 break;
                             case BluetoothAdapter.STATE_ON:
                                 // Log
                                 writeLog("Bluetooth : ON");
+                                try {
+                                    AppUtils.clearNotifyRequestBluetooth(getApplicationContext());
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
 
                                 // init bluetooth
                                 initBluetooth();
@@ -885,8 +1033,8 @@ public class ServiceTraceCovid extends Service {
                                 // Start service
                                 startAll();
                                 break;
-                            case BluetoothAdapter.STATE_TURNING_ON:
-                                break;
+//                            case BluetoothAdapter.STATE_TURNING_ON:
+//                                break;
                         }
                     }
                 }
@@ -923,18 +1071,10 @@ public class ServiceTraceCovid extends Service {
      */
     private void stopAllScan() {
         // Reset flag
-        mStatusScanBle = STATUS_SCAN_FINISH;
-        mStatusAdvertising = STATUS_SCAN_FINISH;
-        mStatusScanDevices = STATUS_SCAN_FINISH;
+        initStatus();
 
-        // Check phat va stop
-        stopBroadcastBle();
-
-        // Check scan va stop
-        stopScanBle();
-
-        // Huỷ receiver scan devices
-        unregisterReceiverScanDevices();
+        // Stop
+        stopBluetoothFeature();
 
         // Huy receiver stop services
         unregisterReceiverStopService();
@@ -947,10 +1087,6 @@ public class ServiceTraceCovid extends Service {
      * Stop nhung cai dat lien quan den bluetooth
      */
     private void stopBluetoothFeature() {
-        mStatusScanBle = STATUS_SCAN_FINISH;
-        mStatusAdvertising = STATUS_SCAN_FINISH;
-        mStatusScanDevices = STATUS_SCAN_FINISH;
-
         // Check phat va stop
         stopBroadcastBle();
 
@@ -1012,4 +1148,217 @@ public class ServiceTraceCovid extends Service {
         }
     }
 
+    // Receiver
+    class LocationChangedReceiver extends BroadcastReceiver {
+        public boolean isLocationEnabled(Context context) {
+            int locationMode = 0;
+            String locationProviders;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT){
+                try {
+                    locationMode = Settings.Secure.getInt(context.getContentResolver(), Settings.Secure.LOCATION_MODE);
+
+                } catch (Settings.SettingNotFoundException e) {
+                    e.printStackTrace();
+                    return false;
+                }
+
+                return locationMode != Settings.Secure.LOCATION_MODE_OFF;
+
+            }else{
+                locationProviders = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.LOCATION_PROVIDERS_ALLOWED);
+                return !TextUtils.isEmpty(locationProviders);
+            }
+        }
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // check
+            if (intent != null) {
+                String action = intent.getAction();
+                if (action.equals(LocationManager.MODE_CHANGED_ACTION)) {
+                    LocationManager locationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
+                    boolean status = this.isLocationEnabled(getApplicationContext());
+                    if (status) {
+                        if(mModeScan != MODE_SCAN_FULL) {
+                            // Create notify bluetooth
+                            try {
+                                AppUtils.createNotifyRequestLocation(getApplicationContext());
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    } else {
+                        try {
+                            AppUtils.clearNotifyRequestLocation(getApplicationContext());
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Asynctask connect
+     */
+    class ConnectTask extends AsyncTask {
+        // RSSI connect
+        private int mRssiConnect;
+
+        // Flag connect
+        private boolean mIsConnect = false;
+
+        @Override
+        protected Object doInBackground(Object[] objects) {
+            // flad
+            mIsConnect = false;
+
+            // Check
+            while (mScanResultList.size() > 0) {
+                // Check connect
+                mIsConnect = true;
+
+                // Time
+                long now = System.currentTimeMillis();
+
+                // Connect
+                mBluetoothGatt = mScanResultList.get(0).getDevice().connectGatt(getApplicationContext(), false,
+                        new BluetoothGattCallback() {
+                    @Override
+                    public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
+                        super.onConnectionStateChange(gatt, status, newState);
+                        // Check status
+                        if (newState == BluetoothProfile.STATE_CONNECTED) {
+                            // Bao cho ham ServicesDiscovered
+                            gatt.discoverServices();
+                        } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+
+                            // Log
+                            writeLog("Disconnected Gatt server.");
+                        }
+                    }
+
+                    @Override
+                    public void onServicesDiscovered(BluetoothGatt gatt, int status) {
+                        super.onServicesDiscovered(gatt, status);
+
+                        // Check status
+                        if (status == BluetoothGatt.GATT_SUCCESS) {
+                            // Read gattservice
+                            getGattService(gatt.getServices());
+                        } else {
+                            // Log
+                            writeLog("onServicesDiscovered received: " + status);
+                        }
+                    }
+
+                    @Override
+                    public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
+                        super.onCharacteristicRead(gatt, characteristic, status);
+                        try {
+                            // Read Blid
+                            byte[] bluezoneId = readValuesCharactic(characteristic);
+
+                            // check
+                            if (BluezoneIdUtils.isBluezoneIdValidate(bluezoneId)) {
+
+                                // Insert db
+                                AppDatabaseHelper.getInstance(getApplicationContext()).insertInfoTrace(bluezoneId, -70, 0);
+
+                                // Ghi ban len he thong
+                                moduleManager.emit(AppUtils.convertBytesToHex(bluezoneId), "", "", -70, "ios", 1);
+
+                                // insert cache
+                                CacheDatabaseHelper.getInstance(getApplicationContext()).insertConnected(bluezoneId, gatt.getDevice().getAddress());
+
+                                // out
+                                mIsConnect = false;
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    @Override
+                    public void onReadRemoteRssi(BluetoothGatt gatt, int rssi, int status) {
+                        super.onReadRemoteRssi(gatt, rssi, status);
+                        // lay rssi
+                        mRssiConnect = rssi;
+                    }
+                });
+
+                // Timeout connect
+                while ((System.currentTimeMillis() - now) < AppConstants.TIMEOUT_CONNECT && mIsConnect && mBluetoothGatt != null) {
+                    SystemClock.sleep(1000);
+                }
+
+                // Remove connect
+                mScanResultList.remove(0);
+                mMacConnectList.remove(0);
+
+                // close connect
+                if (mBluetoothGatt != null) {
+                    mBluetoothGatt.close();
+                }
+            }
+
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Object o) {
+            super.onPostExecute(o);
+        }
+
+        /**
+         * Get list gattService
+         * @param gattServices
+         */
+        private void getGattService(List<BluetoothGattService> gattServices) {
+            // Check init
+            if (mBluetoothAdapter == null || mBluetoothGatt == null) {
+                writeLog("BluetoothAdapter not initialized");
+                return;
+            }
+
+            // Loops GATT Services.
+            for (BluetoothGattService gattService : gattServices) {
+
+                // Get uuid
+                String uuid = gattService.getUuid().toString();
+
+                // Check uuid cua ios
+                if (!TextUtils.isEmpty(uuid) && uuid.equals(AppConstants.BLE_UUID_IOS.toLowerCase())) {
+                    // Get Characteristics info
+                    List<BluetoothGattCharacteristic> gattCharacteristics = gattService.getCharacteristics();
+
+                    // for
+                    for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
+                        // Get uuid cua characteristic
+                        uuid = gattCharacteristic.getUuid().toString();
+
+                        // Check
+                        if (!TextUtils.isEmpty(uuid) && uuid.equals(AppConstants.BLE_UUID_CHARECTIC.toLowerCase())) {
+                            try {
+                                // Read characteris
+                                mBluetoothGatt.readCharacteristic(gattCharacteristic);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        /**
+         * Read values characteristic
+         * @param characteristic
+         * @return
+         */
+        public byte[] readValuesCharactic(BluetoothGattCharacteristic characteristic) {
+            // Read and convert.
+            return characteristic.getValue();
+        }
+    }
 }

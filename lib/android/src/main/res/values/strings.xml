@@ -1,7 +1,9 @@
 <resources>
     <string name="app_name">Bluezone</string>
-    <string name="notification_title">Bluezone</string>
-    <string name="notification_content">Chưa thấy F0 nào tiếp xúc gần với bạn !</string>
+    <string name="notification_title">Bluezone - Khẩu trang điện tử</string>
+    <string name="notification_title_en">Bluezone - Electronic mask</string>
+    <string name="notification_content">Chưa phát hiện F0 nào tiếp xúc gần với bạn !</string>
+    <string name="notification_content_en">Not detected any F0 that is in close contact with you !</string>
 <!--    <string name="notification_title">Bluezone: Tx gần 6 / 10 Tx</string>-->
 <!--    <string name="notification_content">Chưa thấy F0 nào tiếp xúc gần với bạn !</string>-->
 </resources>
