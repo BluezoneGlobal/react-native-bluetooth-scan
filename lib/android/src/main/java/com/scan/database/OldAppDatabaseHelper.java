@@ -9,8 +9,7 @@ import android.provider.BaseColumns;
 import android.text.TextUtils;
 
 import com.scan.AppConstants;
-import com.scan.AppUtils;
-import com.scan.bluezoneid.BluezoneIdGenerator;
+import com.scan.preference.AppPreferenceManager;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -20,29 +19,31 @@ import java.util.Set;
 /**
  * @author khanhxu
  */
-public class AppDatabaseHelper extends SQLiteOpenHelper {
+public class OldAppDatabaseHelper extends SQLiteOpenHelper {
 
-    private static final String DATABASE_NAME = "app_db_2.db";
-    public static final int DATABASE_VERSION = 1;
+    private static final String DATABASE_NAME = "app_db.db";
+    public static final int DATABASE_VERSION = 3;
 
     // Table trace
     public static final String TABLE_NAME = "trace_info";
-    public static final String COLUMN_BLID = "blid";
-    public static final String COLUMN_BLID_CONTACT = "blid_contact";
-    public static final String COLUMN_MAC_ID = "macid";
-    public static final String COLUMN_RSSI = "rssi";
-    public static final String COLUMN_TX_POWER = "tx_power";
-    public static final String COLUMN_STATE = "state";
-    public static final String COLUMN_TIME = "timestamp";
+    public static final String COLUMN_NAMES_TIME = "timestamp";     // timestamp
+    public static final String COLUMN_NAMES_USER_ID = "userid";     // user_id
+    public static final String COLUMN_NAMES_MAC_ID = "macid";       // mac
+    public static final String COLUMN_NAMES_RSSI = "rssi";          // rssi
+    public static final String COLUMN_NAMES_DEVICES = "devices";    // devices
+    public static final String COLUMN_NAMES_BLID = "blid";          // blid => UserCode
+    public static final String COLUMN_NAMES_TX_POWER = "tx_power";  // tx_power
+    public static final String COLUMN_NAMES_STATE = "state";        // state
 
     // Index
-    public static final int COLUMN_INDEX_BLID = 1;
-    public static final int COLUMN_INDEX_BLID_CONTACT  = 2;
+    public static final int COLUMN_INDEX_TIME = 1;
+    public static final int COLUMN_INDEX_USER_ID = 2;
     public static final int COLUMN_INDEX_MAC_ID = 3;
     public static final int COLUMN_INDEX_RSSI = 4;
-    public static final int COLUMN_INDEX_TX_POWER = 5;
-    public static final int COLUMN_INDEX_STATE = 6;
-    public static final int COLUMN_INDEX_TIME = 7;
+    public static final int COLUMN_INDEX_DEVICES = 5;
+    public static final int COLUMN_INDEX_BLID = 6;
+    public static final int COLUMN_INDEX_TX_POWER = 7;
+    public static final int COLUMN_INDEX_STATE = 8;
 
     private static SQLiteDatabase mDatabase;
     private static Context mContext;
@@ -54,18 +55,18 @@ public class AppDatabaseHelper extends SQLiteOpenHelper {
     /**
      * @param context
      */
-    private AppDatabaseHelper(Context context) {
+    private OldAppDatabaseHelper(Context context) {
         super(context.getApplicationContext(), DATABASE_NAME, null, DATABASE_VERSION);
     }
 
-    private static AppDatabaseHelper sHelper;
+    private static OldAppDatabaseHelper sHelper;
 
-    public static AppDatabaseHelper getInstance(Context context) {
+    public static OldAppDatabaseHelper getInstance(Context context) {
         mContext = context;
 
         // check
         if (sHelper == null) {
-            sHelper = new AppDatabaseHelper(context);
+            sHelper = new OldAppDatabaseHelper(context);
         }
 
         return sHelper;
@@ -84,13 +85,14 @@ public class AppDatabaseHelper extends SQLiteOpenHelper {
             // Create table
             String createSessionTable = "create table if not exists " +
                     TABLE_NAME + " (" + BaseColumns._ID + " integer primary key autoincrement,"
-                    + COLUMN_BLID + " BLOB,"
-                    + COLUMN_BLID_CONTACT + " BLOB,"
-                    + COLUMN_MAC_ID + " text,"
-                    + COLUMN_RSSI + " integer,"
-                    + COLUMN_TX_POWER + " integer,"
-                    + COLUMN_STATE + " integer,"
-                    + COLUMN_TIME + " long);";
+                    + COLUMN_NAMES_TIME + " long,"
+                    + COLUMN_NAMES_USER_ID + " text,"
+                    + COLUMN_NAMES_MAC_ID + " text,"
+                    + COLUMN_NAMES_RSSI + " integer,"
+                    + COLUMN_NAMES_DEVICES + " text,"
+                    + COLUMN_NAMES_BLID + " text,"
+                    + COLUMN_NAMES_TX_POWER + " integer,"
+                    + COLUMN_NAMES_STATE + " integer);";
             sqLiteDatabase.execSQL(createSessionTable);
         } catch (Exception e) {
             e.printStackTrace();
@@ -99,7 +101,14 @@ public class AppDatabaseHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-
+        // Add Column
+        if (newVersion == 2) {
+            db.execSQL("ALTER TABLE " + TABLE_NAME + " ADD COLUMN " + COLUMN_NAMES_DEVICES + " text;");
+        } else if (newVersion == 3) { //  Add column
+            db.execSQL("ALTER TABLE " + TABLE_NAME + " ADD COLUMN " + COLUMN_NAMES_BLID + " text;");
+            db.execSQL("ALTER TABLE " + TABLE_NAME + " ADD COLUMN " + COLUMN_NAMES_TX_POWER + " integer;");
+            db.execSQL("ALTER TABLE " + TABLE_NAME + " ADD COLUMN " + COLUMN_NAMES_STATE + " integer;");
+        }
     }
 
     /**
@@ -122,17 +131,16 @@ public class AppDatabaseHelper extends SQLiteOpenHelper {
     }
 
     /**
-     * Add trace info
-     * @param blidContact
+     * Them trace info
+     * @param userId
      * @param rssi
-     * @param txPower
      * @return
      */
-    public long insertInfoTrace(byte[] blidContact, int rssi, int txPower) {
+    public long insertTrace(String userId, String macId, String devices, int rssi) {
         long ret = -1;
 
         // Check
-        if (blidContact != null && isInsert(AppUtils.convertBytesToHex(blidContact))) {
+        if (isInsert(userId)) {
 
             // Open
             openDatabase();
@@ -142,11 +150,48 @@ public class AppDatabaseHelper extends SQLiteOpenHelper {
 
                 // Data insert
                 final ContentValues contentValues = new ContentValues();
-                contentValues.put(COLUMN_BLID, BluezoneIdGenerator.getInstance(mContext).getBluezoneId());
-                contentValues.put(COLUMN_BLID_CONTACT, blidContact);
-                contentValues.put(COLUMN_RSSI, rssi);
-                contentValues.put(COLUMN_TX_POWER, txPower);
-                contentValues.put(COLUMN_TIME, time);
+                contentValues.put(COLUMN_NAMES_TIME, time);
+                contentValues.put(COLUMN_NAMES_USER_ID, userId);
+                contentValues.put(COLUMN_NAMES_MAC_ID, macId);
+                contentValues.put(COLUMN_NAMES_RSSI, rssi);
+                contentValues.put(COLUMN_NAMES_DEVICES, devices);
+
+                // insert
+                ret = mDatabase.insertOrThrow(TABLE_NAME, null, contentValues);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        return ret;
+    }
+
+    /**
+     * Them trace info
+     * @param userId
+     * @param rssi
+     * @param txPower
+     * @return
+     */
+    public long insertUserIdTrace(String userId, int rssi, int txPower) {
+        long ret = -1;
+
+        // Check
+        if (isInsert(userId)) {
+
+            // Open
+            openDatabase();
+
+            try {
+                long time = System.currentTimeMillis();
+
+                // Data insert
+                final ContentValues contentValues = new ContentValues();
+                contentValues.put(COLUMN_NAMES_TIME, time);
+                contentValues.put(COLUMN_NAMES_USER_ID, userId);
+                contentValues.put(COLUMN_NAMES_RSSI, rssi);
+                contentValues.put(COLUMN_NAMES_BLID, AppPreferenceManager.getInstance(mContext).getBlid());
+                contentValues.put(COLUMN_NAMES_TX_POWER, txPower);
 
                 // insert
                 ret = mDatabase.insertOrThrow(TABLE_NAME, null, contentValues);
@@ -171,7 +216,7 @@ public class AppDatabaseHelper extends SQLiteOpenHelper {
      * @param txPower
      * @return
      */
-    public long insertMacIdTrace(String macId, int rssi, int txPower) {
+    public long insertMacIdTrace(String macId, String devices, int rssi, int txPower) {
         long ret = -1;
 
         // Check
@@ -185,11 +230,12 @@ public class AppDatabaseHelper extends SQLiteOpenHelper {
 
                 // Data insert
                 final ContentValues contentValues = new ContentValues();
-                contentValues.put(COLUMN_BLID, BluezoneIdGenerator.getInstance(mContext).getBluezoneId());
-                contentValues.put(COLUMN_TIME, time);
-                contentValues.put(COLUMN_MAC_ID, macId);
-                contentValues.put(COLUMN_RSSI, rssi);
-                contentValues.put(COLUMN_TX_POWER, txPower);
+                contentValues.put(COLUMN_NAMES_TIME, time);
+                contentValues.put(COLUMN_NAMES_MAC_ID, macId);
+                contentValues.put(COLUMN_NAMES_RSSI, rssi);
+                contentValues.put(COLUMN_NAMES_DEVICES, devices);
+                contentValues.put(COLUMN_NAMES_BLID, AppPreferenceManager.getInstance(mContext).getBlid());
+                contentValues.put(COLUMN_NAMES_TX_POWER, txPower);
 
                 // insert
                 ret = mDatabase.insertOrThrow(TABLE_NAME, null, contentValues);
@@ -208,7 +254,7 @@ public class AppDatabaseHelper extends SQLiteOpenHelper {
     }
 
     /**
-     * Is Expried
+     * Check thoi gian thuc hien
      * @param info
      */
     private static boolean isInsert(String info) {
@@ -284,30 +330,30 @@ public class AppDatabaseHelper extends SQLiteOpenHelper {
         return ret;
     }
 
-//    /**
-//     * Get all data
-//     * @param listBlid
-//     * @return
-//     */
-//    public Cursor getCursorData(String[] listBlid) {
-//        // ret
-//        Cursor cursor = null;
-//
-//        // open
-//        openDatabase();
-//
-//        // Check
-//        if (listBlid == null || listBlid.length == 0) {
-//            cursor = mDatabase.query(TABLE_NAME, null, null,
-//                    null, null, null, null, null);
-//        } else {
-//            cursor = mDatabase.query(TABLE_NAME, null,
-//                    COLUMN_NAMES_USER_ID + " IN('" + TextUtils.join("', '", listBlid) + "')",
-//                    null, null, null, null, null);
-//        }
-//
-//        return cursor;
-//    }
+    /**
+     * Get all data
+     * @param listBlid
+     * @return
+     */
+    public Cursor getCursorData(String[] listBlid) {
+        // ret
+        Cursor cursor = null;
+
+        // open
+        openDatabase();
+
+        // Check
+        if (listBlid == null || listBlid.length == 0) {
+            cursor = mDatabase.query(TABLE_NAME, null, null,
+                    null, null, null, null, null);
+        } else {
+            cursor = mDatabase.query(TABLE_NAME, null,
+                    COLUMN_NAMES_USER_ID + " IN('" + TextUtils.join("', '", listBlid) + "')",
+                    null, null, null, null, null);
+        }
+
+        return cursor;
+    }
 
     @Override
     protected void finalize() throws Throwable {
@@ -319,6 +365,6 @@ public class AppDatabaseHelper extends SQLiteOpenHelper {
     }
 
     private static class Holder {
-        static final AppDatabaseHelper mInstance = new AppDatabaseHelper(mContext);
+        static final OldAppDatabaseHelper mInstance = new OldAppDatabaseHelper(mContext);
     }
 }

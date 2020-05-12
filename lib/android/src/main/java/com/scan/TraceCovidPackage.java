@@ -1,6 +1,7 @@
 package com.scan;
 
 import android.app.Activity;
+import android.os.Build;
 
 import com.facebook.react.ReactPackage;
 import com.facebook.react.bridge.JavaScriptModule;
