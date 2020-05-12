@@ -260,7 +260,15 @@ public class AppUtils {
         } catch (JSONException e) {
             e.printStackTrace();
         }
+
         long now = System.currentTimeMillis();
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        long beginningOfToday = calendar.getTimeInMillis();
+
         for (int i = 0; i < itemRepeatArray.length(); i++) {
             JSONObject item = itemRepeatArray.getJSONObject(i);
             if(!item.has("id")) {
@@ -270,13 +278,7 @@ public class AppUtils {
             int dayStartTime = item.getInt("dayStartTime");
             int repeatTime = item.getInt("repeatTime");
 
-            Calendar calendar = Calendar.getInstance();
-            calendar.setTimeInMillis(now);
-            calendar.set(Calendar.HOUR_OF_DAY, 0);
-            calendar.set(Calendar.MINUTE, 0);
-            calendar.set(Calendar.SECOND, 0);
-            calendar.set(Calendar.MILLISECOND, 0);
-            long iTime = calendar.getTimeInMillis() + dayStartTime;
+            long iTime = beginningOfToday + dayStartTime;
             if (iTime < now) {
                 iTime += 86400000;
             }
@@ -365,7 +367,14 @@ public class AppUtils {
         } catch (JSONException e) {
             e.printStackTrace();
         }
+
         long now = System.currentTimeMillis();
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        long beginningOfToday = calendar.getTimeInMillis();
+
         for (int i = 0; i < itemRepeatArray.length(); i++) {
             JSONObject item = itemRepeatArray.getJSONObject(i);
             if(!item.has("id")) {
@@ -375,12 +384,7 @@ public class AppUtils {
             int dayStartTime = item.getInt("dayStartTime");
             int repeatTime = item.getInt("repeatTime");
 
-            Calendar calendar = Calendar.getInstance();
-            calendar.setTimeInMillis(now);
-            calendar.set(Calendar.HOUR_OF_DAY, 0);
-            calendar.set(Calendar.MINUTE, 0);
-            calendar.set(Calendar.MILLISECOND, 0);
-            long iTime = calendar.getTimeInMillis() + dayStartTime;
+            long iTime = beginningOfToday + dayStartTime;
             if (iTime < now) {
                 iTime += 86400000;
             }
@@ -450,7 +454,15 @@ public class AppUtils {
         } catch (JSONException e) {
             e.printStackTrace();
         }
+
         long now = System.currentTimeMillis();
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        long beginningOfToday = calendar.getTimeInMillis();
+
         for (int i = 0; i < itemRepeatArray.length(); i++) {
             JSONObject item = itemRepeatArray.getJSONObject(i);
             if(!item.has("id")) {
@@ -460,12 +472,7 @@ public class AppUtils {
             int dayStartTime = item.getInt("dayStartTime");
             int repeatTime = item.getInt("repeatTime");
 
-            Calendar calendar = Calendar.getInstance();
-            calendar.setTimeInMillis(now);
-            calendar.set(Calendar.HOUR_OF_DAY, 0);
-            calendar.set(Calendar.MINUTE, 0);
-            calendar.set(Calendar.MILLISECOND, 0);
-            long iTime = calendar.getTimeInMillis() + dayStartTime;
+            long iTime = beginningOfToday + dayStartTime;
             if (iTime < now) {
                 iTime += 86400000;
             }
