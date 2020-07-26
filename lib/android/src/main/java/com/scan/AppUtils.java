@@ -51,8 +51,9 @@ import static androidx.core.app.NotificationCompat.PRIORITY_MIN;
 public class AppUtils {
 
     // UUID cua BLE
-    public static ParcelUuid BLE_UUID_IOS = new ParcelUuid(UUID.fromString(AppConstants.BLE_UUID_IOS));
-    public static ParcelUuid BLE_UUID_ANDROID = new ParcelUuid(UUID.fromString(AppConstants.BLE_UUID_ANDROID));
+    public static final ParcelUuid BLE_UUID_IOS = new ParcelUuid(UUID.fromString(AppConstants.BLE_UUID_IOS));
+    public static final ParcelUuid BLE_UUID_ANDROID = new ParcelUuid(UUID.fromString(AppConstants.BLE_UUID_ANDROID));
+    public static final UUID BLE_UUID_CHARECTIC = UUID.fromString(AppConstants.BLE_UUID_CHARECTIC);
 
     /**
      * check xem máy có support BLE hay không
@@ -1021,13 +1022,37 @@ public class AppUtils {
      */
     public static String convertBytesToHex(byte[] bytes) {
         StringBuilder ret = new StringBuilder();
-
         for (byte temp : bytes) {
-            int decimal = (int) temp & 0xFF;
-            String hex = Integer.toHexString(decimal);
-            ret.append(hex.toUpperCase());
+            ret.append(String.format("%02X", temp));
         }
 
         return ret.toString();
     }
+
+    /**
+     * Convert hex to bytes
+     * @param hex
+     * @return
+     */
+    public static byte[] convertHexToBytes(String hex) {
+        int len = hex.length();
+        byte[] data = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {
+            data[i / 2] = (byte) ((Character.digit(hex.charAt(i), 16) << 4)
+                    + Character.digit(hex.charAt(i+1), 16));
+        }
+
+        return data;
+    }
+
+//    /**
+//     * Convert Time Zone UTC
+//     * @param time
+//     * @return
+//     */
+//    public static long convertTimeZoneUtc(long time) {
+//        Calendar calendar = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
+//        calendar.setTimeInMillis(time);
+//        return calendar.getTimeInMillis();
+//    }
 }

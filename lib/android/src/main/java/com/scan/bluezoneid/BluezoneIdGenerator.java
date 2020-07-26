@@ -2,7 +2,9 @@ package com.scan.bluezoneid;
 
 import android.content.Context;
 import android.text.TextUtils;
+import android.util.Log;
 
+import com.scan.AppUtils;
 import com.scan.preference.AppPreferenceManager;
 
 import java.security.NoSuchAlgorithmException;
@@ -93,7 +95,7 @@ public class BluezoneIdGenerator {
         // Create random bluezone base id
         byte[] bluezoneBaseId = initRandomBluezoneBaseId();
         if (bluezoneBaseId != null) {
-            BluezoneDailyKey bluezoneBaseIdData = new BluezoneDailyKey(initRandomBluezoneBaseId(), new BluezoneDate(System.currentTimeMillis()));
+            BluezoneDailyKey bluezoneBaseIdData = new BluezoneDailyKey(bluezoneBaseId, new BluezoneDate(System.currentTimeMillis()));
             saveBluezoneBaseId(BluezoneIdUtils.objectToJson(bluezoneBaseIdData));
 
             // Create BluezoneId
@@ -135,13 +137,43 @@ public class BluezoneIdGenerator {
 
             int times = (int) ((timeEnd - bluezoneDailyKey.second.getTimeStart()) / BluezoneIdConstants.DAY_MILLISECONDS);
             if (times > 0) {
-                for (int i = 0; i < times - 1; i++) {
+                for (int i = 0; i < times; i++) {
                     bluezoneDailyKeyNow = BluezoneIdUtils.sha256(bluezoneDailyKeyNow);
                 }
             }
         }
 
         return bluezoneDailyKeyNow;
+    }
+
+    /**
+     * Create BluezoneDailyKey
+     * @param dayStart
+     * @return
+     */
+    public BluezoneDailyKey createBluezoneDailyKey(int dayStart) {
+        BluezoneDailyKey ret = null;
+
+        BluezoneDailyKey bluezoneDailyKey = getBluezoneBaseId();
+        // Create hash sha256 to Dn-1
+        if (bluezoneDailyKey != null) {
+            // Call Time
+            long timeEnd = System.currentTimeMillis() - (dayStart * BluezoneIdConstants.DAY_MILLISECONDS);
+
+            // Default
+            byte[] bluezoneDailyKeyDx = bluezoneDailyKey.first;
+
+            int times = (int) ((timeEnd - bluezoneDailyKey.second.getTimeStart()) / BluezoneIdConstants.DAY_MILLISECONDS);
+            if (times > 0) {
+                for (int i = 0; i < times; i++) {
+                    bluezoneDailyKeyDx = BluezoneIdUtils.sha256(bluezoneDailyKeyDx);
+                }
+            }
+
+            ret = new BluezoneDailyKey(bluezoneDailyKeyDx, new BluezoneDate(timeEnd));
+        }
+
+        return ret;
     }
 
     /**
@@ -176,7 +208,8 @@ public class BluezoneIdGenerator {
                 for (int i = 0; i < maxSubKey; i++) {
                     byte[] bluezoneId = convertBluezoneSubKeyToBluezoneId(bluezoneSubKey);
                     if (bluezoneId.length == BluezoneIdConstants.Config.LENGTH_BYTE) {
-                        listBluezoneId.add(new BluezoneId(bluezoneId, dateSubKey.nextTimeSubKey()));
+                        long timeBluezone = dateSubKey.nextTimeSubKey();
+                        listBluezoneId.add(new BluezoneId(bluezoneId, timeBluezone));
 
                         // Check index subkey
                         if (indexSubKey == i) {
@@ -202,7 +235,7 @@ public class BluezoneIdGenerator {
      * @param bluezoneSubKey
      * @return
      */
-    private static byte[] convertBluezoneSubKeyToBluezoneId(byte[] bluezoneSubKey) {
+    public static byte[] convertBluezoneSubKeyToBluezoneId(byte[] bluezoneSubKey) {
         byte[] bluezoneDailyId = new byte[BluezoneIdConstants.Config.LENGTH_BYTE];
 
         if (bluezoneSubKey != null && bluezoneSubKey.length == 32) {
@@ -274,7 +307,7 @@ public class BluezoneIdGenerator {
      * Get Bluezone base Id
      * @return
      */
-    private BluezoneDailyKey getBluezoneBaseId() {
+    public BluezoneDailyKey getBluezoneBaseId() {
         String jsonBluezoneBaseId = mPreferenceManager.getString(BluezoneIdConstants.Preference.BLUEZONE_BASE_ID, "");
         if (!TextUtils.isEmpty(jsonBluezoneBaseId)) {
             return BluezoneIdUtils.jsonToObject(jsonBluezoneBaseId, BluezoneDailyKey.class);

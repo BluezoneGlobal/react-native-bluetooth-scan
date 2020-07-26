@@ -7,6 +7,9 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.provider.BaseColumns;
 
+import com.scan.bluezoneid.BluezoneIdUtils;
+import com.scan.model.CacheBleScan;
+
 /**
  * @author khanhxu
  */
@@ -150,7 +153,44 @@ public class CacheDatabaseHelper extends SQLiteOpenHelper {
 
             // Check
             if (cursor != null && cursor.moveToFirst()) {
-                ret = cursor.getBlob(COLUMN_INDEX_BLID_ID);
+                long time = cursor.getLong(COLUMN_INDEX_CONNECT_TIME);
+                if (!BluezoneIdUtils.isBluezoneIdChanged(mContext, time, System.currentTimeMillis())) {
+                    ret = cursor.getBlob(COLUMN_INDEX_BLID_ID);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }  finally {
+            // Close
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+
+        return ret;
+    }
+
+    /**
+     * Get blid
+     * @param macId
+     * @return
+     */
+    public CacheBleScan getCacheBleScan(String macId) {
+        CacheBleScan ret = null;
+
+        // Open
+        openDatabase();
+
+        // Cursor
+        Cursor cursor = null;
+        try {
+            // Lay thong tin
+            cursor = mDatabase.query(TABLE_NAME, null, COLUMN_CONNECT_MAC_ID + "= ?",
+                    new String[]{macId}, null, null, null, null);
+
+            // Check
+            if (cursor != null && cursor.moveToFirst()) {
+                ret = new CacheBleScan(cursor.getBlob(COLUMN_INDEX_BLID_ID), cursor.getLong(COLUMN_INDEX_CONNECT_TIME));
             }
         } catch (Exception e) {
             e.printStackTrace();

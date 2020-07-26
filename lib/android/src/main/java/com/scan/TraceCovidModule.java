@@ -16,6 +16,7 @@ import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.facebook.react.uimanager.IllegalViewOperationException;
 import com.scan.backup.BackupUtils;
+import com.scan.bluezoneid.BluezoneIdTrace;
 import com.scan.bluezoneid.BluezoneIdUtils;
 import com.scan.preference.AppPreferenceManager;
 
@@ -99,38 +100,71 @@ public class TraceCovidModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void checkContact(ReadableArray ids, Promise promise) {
         try {
-            int length = 0;
-            if(ids != null) {
-                length = ids.size();
-            } else {
-                promise.reject("Error", "Don't find id");
-            }
-            if(length > 2) {
-                promise.resolve(true);
-            } else {
-                promise.resolve(false);
-            }
-        }  catch (IllegalViewOperationException e) {
-            promise.reject("Error", "An error occurred");
-        }
-    }
-
-    @ReactMethod
-    public void writeHistoryContact(ReadableArray ids, Promise promise) {
-        try {
             String arrId[];
             int length = 0;
             if(ids != null) {
                 length = ids.size();
                 arrId = new String[length];
             } else {
-                arrId = null;
+                promise.reject("Error", "Don't find id");
+                return;
             }
+
             for(int i = 0; i < length; i++) {
                 arrId[i] = ids.getString(i);
             }
+            promise.resolve(BackupUtils.checkContact(reactContext, arrId));
 
-            String uri = BackupUtils.backupFileData(reactContext, arrId);
+        }  catch (IllegalViewOperationException e) {
+            promise.reject("Error", "An error occurred");
+        }
+    }
+
+    @ReactMethod
+    public void checkContactF(String data, Promise promise) {
+        try {
+            promise.resolve(BluezoneIdTrace.isContactF(reactContext, data));
+        }  catch (IllegalViewOperationException e) {
+            promise.reject("Error", "An error occurred");
+        }
+    }
+
+//    @ReactMethod
+//    public void writeHistoryContactF(ReadableArray ids, Promise promise) {
+//        try {
+//            String arrId[];
+//            int length = 0;
+//            if(ids != null) {
+//                length = ids.size();
+//                arrId = new String[length];
+//            } else {
+//                arrId = null;
+//            }
+//            for(int i = 0; i < length; i++) {
+//                arrId[i] = ids.getString(i);
+//            }
+//
+//            String uri = BluezoneIdTrace.exportTraceData(reactContext);
+//            promise.resolve(uri);
+//        } catch (IllegalViewOperationException e) {
+//            promise.reject("Error", "An error occurred");
+//        }
+//    }
+
+    @ReactMethod
+    public void getBluezoneIdInfo(int dayStartTrace, Promise promise) {
+        try {
+            String uri = BluezoneIdTrace.getBluezoneIdInfo(reactContext, dayStartTrace);
+            promise.resolve(uri);
+        } catch (IllegalViewOperationException e) {
+            promise.reject("Error", "An error occurred");
+        }
+    }
+
+    @ReactMethod
+    public void writeHistoryContact(Promise promise) {
+        try {
+            String uri = BluezoneIdTrace.exportTraceData(reactContext);
             promise.resolve(uri);
         } catch (IllegalViewOperationException e) {
             promise.reject("Error", "An error occurred");
