@@ -164,13 +164,15 @@ public class BluezoneIdGenerator {
             byte[] bluezoneDailyKeyDx = bluezoneDailyKey.first;
 
             int times = (int) ((timeEnd - bluezoneDailyKey.second.getTimeStart()) / BluezoneIdConstants.DAY_MILLISECONDS);
+            long timeStart = bluezoneDailyKey.second.getTimeStart();
             if (times > 0) {
                 for (int i = 0; i < times; i++) {
                     bluezoneDailyKeyDx = BluezoneIdUtils.sha256(bluezoneDailyKeyDx);
+                    timeStart = timeStart + BluezoneIdConstants.DAY_MILLISECONDS;
                 }
             }
 
-            ret = new BluezoneDailyKey(bluezoneDailyKeyDx, new BluezoneDate(timeEnd));
+            ret = new BluezoneDailyKey(bluezoneDailyKeyDx, new BluezoneDate(timeStart));
         }
 
         return ret;
