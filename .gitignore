@@ -31,9 +31,11 @@ build/
 local.properties
 *.iml
 
-android/build/*
+gradle/
 
-android/gradle/*
+android/build/
+
+android/gradle/
 
 android/local.properties
 
