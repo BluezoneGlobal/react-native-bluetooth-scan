@@ -1,6 +1,7 @@
 package com.scan;
 
-import android.os.Build;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.Promise;
@@ -8,19 +9,12 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
-import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
-import com.facebook.react.bridge.WritableArray;
-import com.facebook.react.bridge.Arguments;
-import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.facebook.react.uimanager.IllegalViewOperationException;
-import com.scan.backup.BackupUtils;
+import com.scan.bluezoneid.BluezoneIdTrace;
 import com.scan.bluezoneid.BluezoneIdUtils;
 import com.scan.preference.AppPreferenceManager;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
 import org.json.JSONException;
 
@@ -91,46 +85,18 @@ public class TraceCovidModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void restoreDb() {
-        // Restore DB tu External storage
-        BackupUtils.restoreDatabaseFromExternalStorage(reactContext);
-    }
-
-    @ReactMethod
-    public void checkContact(ReadableArray ids, Promise promise) {
+    public void checkContactF(String data, Promise promise) {
         try {
-            int length = 0;
-            if(ids != null) {
-                length = ids.size();
-            } else {
-                promise.reject("Error", "Don't find id");
-            }
-            if(length > 2) {
-                promise.resolve(true);
-            } else {
-                promise.resolve(false);
-            }
+            promise.resolve(BluezoneIdTrace.isContactF(reactContext, data));
         }  catch (IllegalViewOperationException e) {
             promise.reject("Error", "An error occurred");
         }
     }
 
     @ReactMethod
-    public void writeHistoryContact(ReadableArray ids, Promise promise) {
+    public void getBluezoneIdInfo(int dayStartTrace, Promise promise) {
         try {
-            String arrId[];
-            int length = 0;
-            if(ids != null) {
-                length = ids.size();
-                arrId = new String[length];
-            } else {
-                arrId = null;
-            }
-            for(int i = 0; i < length; i++) {
-                arrId[i] = ids.getString(i);
-            }
-
-            String uri = BackupUtils.backupFileData(reactContext, arrId);
+            String uri = BluezoneIdTrace.getBluezoneIdInfo(reactContext, dayStartTrace);
             promise.resolve(uri);
         } catch (IllegalViewOperationException e) {
             promise.reject("Error", "An error occurred");
@@ -138,15 +104,24 @@ public class TraceCovidModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void generatorBluezoneId(Promise promise) {
-        String bluezoneId = BluezonerIdGenerator.createBluezonerId(6);
-        promise.resolve(bluezoneId);
+    public void writeHistoryContact(int dayStartTrace, Promise promise) {
+        try {
+            String uri = BluezoneIdTrace.exportTraceData(reactContext, dayStartTrace);
+            promise.resolve(uri);
+        } catch (IllegalViewOperationException e) {
+            promise.reject("Error", "An error occurred");
+        }
     }
 
     @ReactMethod
     public void getBluezoneId(Promise promise) {
         String bzId = BluezoneIdUtils.getHexBluezoneId(reactContext);
         promise.resolve(bzId);
+    }
+
+    @ReactMethod
+    public void setContentNotify(String title, String content) {
+        this.manager.setContentNotify(title, content);
     }
 
     public void emitEvent(String eventName, @Nullable Object data) {

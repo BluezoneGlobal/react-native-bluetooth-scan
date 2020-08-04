@@ -71,7 +71,7 @@ public class TraceCovidModuleManager {
             int timeIntervalEnableBluetooth = json.has("TimeEnableBluetooth") ? json.getInt("TimeEnableBluetooth") : -1;
             int batteryLevelEnableBluetooth = json.has("BatteryEnableBluetooth") ? json.getInt("BatteryEnableBluetooth") : -1;
             int intervalRequestPermisson = json.has("IntervalRequestPermisson") ? json.getInt("IntervalRequestPermisson") : -1;
-            int maxNumberSubKey = json.has("MaxNumberSubKey") ? json.getInt("MaxNumberSubKey") : -1;
+            int maxNumberSubKey = json.has("MaxNumberSubKeyPerDay") ? json.getInt("MaxNumberSubKeyPerDay") : -1;
 
             AppConfig.setConfigs(
                     reactContext,
@@ -110,7 +110,7 @@ public class TraceCovidModuleManager {
         int timeIntervalEnableBluetooth = configs.hasKey("TimeEnableBluetooth") ? configs.getInt("TimeEnableBluetooth") : -1;
         int batteryLevelEnableBluetooth = configs.hasKey("BatteryEnableBluetooth") ? configs.getInt("BatteryEnableBluetooth") : -1;
         int intervalRequestPermisson = configs.hasKey("IntervalRequestPermisson") ? configs.getInt("IntervalRequestPermisson") : -1;
-        int maxNumberSubKey = configs.hasKey("MaxNumberSubKey") ? configs.getInt("MaxNumberSubKey") : -1;
+        int maxNumberSubKey = configs.hasKey("MaxNumberSubKeyPerDay") ? configs.getInt("MaxNumberSubKeyPerDay") : -1;
         AppConfig.setConfigs(
                 reactContext,
                 timeScanBleRun,
@@ -237,5 +237,9 @@ public class TraceCovidModuleManager {
     public void setLanguage(String language) {
         AppPreferenceManager.getInstance(reactContext).setLanguage(language);
         AppUtils.changeLanguageNotification(reactContext, language);
+    }
+
+    public void setContentNotify(String title, String content) {
+        AppUtils.changeNotification(reactContext, title, content);
     }
 }

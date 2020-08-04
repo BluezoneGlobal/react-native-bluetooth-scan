@@ -36,12 +36,13 @@ public class AppConstants {
         // Default
         public static final long DEFAULT_BROADCAST_BLE_DURATION = 15 * 1000;
         public static final long DEFAULT_BROADCAST_BLE_INTERVAL = 15 * 1000;
-        public static final long DEFAULT_SCAN_BLE_DURATION = 35 * 1000;
-        public static final long DEFAULT_SCAN_BLE_INTERVAL = 85 * 1000;
-        public static final long DEFAULT_SCAN_DEVICES_DURATION = 35 * 1000;
-        public static final long DEFAULT_SCAN_DEVICES_INTERVAL = 85 * 1000;
+        public static final long DEFAULT_SCAN_BLE_DURATION = 40 * 1000;
+        public static final long DEFAULT_SCAN_BLE_INTERVAL = 260 * 1000;
+        public static final long DEFAULT_SCAN_DEVICES_DURATION = 40 * 1000;
+        public static final long DEFAULT_SCAN_DEVICES_INTERVAL = 260 * 1000;
         public static final long DEFAULT_FULL_DURATION = (2 * 60 + 30) * 1000;
         public static final long DEFAULT_FULL_INTERVAL = 5 * 1000;
+        public static final long DEFAULT_RESCAN_INTERVAL = 5 * 1000;
 
         // Enable Bluetooth level
         public static final int DEFAULT_ENABLE_BLUETTOOTH_BATTERY_LEVEL = 15;
@@ -57,6 +58,12 @@ public class AppConstants {
         // Timmer check permisson to create notification
         public static final long DEFAULT_INTERVAL_CHECK_PERMISSON = 2 * 60 * 1000;
 
+        // Timeout connect
+        public static final long TIMEOUT_CONNECT = 10 * 1000;
+
+        // Time delay report scan
+        public static final long TIME_SCAN_BLE_REPORT_DELAY = 10 * 1000;
+
         // ??
         public static long DATABASE_MAX_ROW = 100000;
         public static long DATABASE_MAX_DAY = 100000;
@@ -71,8 +78,8 @@ public class AppConstants {
     public static final String BLE_UUID_CHARECTIC = "0000" + BLUEZONE_UUID + "-73F5-4BC4-A12F-17D1AD07A689";
     public static final int DEFAUT_MANUFACTOR_IOS = 0x004c;
     public static final byte[] DEFAUT_MANUFACTOR_BYTE_IOS_X = new byte[] {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -128, 0, 0, 0, 0, 0};
-    public static final byte[] DEFAUT_MANUFACTOR_BYTE_IOS = new byte[] {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    public static final long TIMEOUT_CONNECT = 10 * 1000;
+    public static final byte[] DEFAUT_MANUFACTOR_BYTE_IOS = new byte[] {1, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    public static final byte[] BLUEZONE_BYTE_NONE = new byte[] {0};
 
     // Notification
     public static final String NOTIFICATION_CHANNEL_ID = "BluezoneChannel";
@@ -87,6 +94,10 @@ public class AppConstants {
 
     // UerID length
     public static final int USERID_LENGTH = 6;
+
+    // PlatfromName
+    public static final String PLATFORM_ANDROID = "Android";
+    public static final String PLATFORM_IOS = "iOS";
 
     // Backup
     public static class Backup {

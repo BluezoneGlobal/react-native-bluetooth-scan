@@ -70,6 +70,7 @@ out/
 release/
 
 # Gradle files
+lib/android/gradle/
 .gradle/
 build/
 
@@ -90,6 +91,7 @@ captures/
 
 # IntelliJ
 *.iml
+.idea/
 .idea/workspace.xml
 .idea/tasks.xml
 .idea/gradle.xml

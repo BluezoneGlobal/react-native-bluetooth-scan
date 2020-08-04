@@ -50,6 +50,6 @@ public class NotificationReceiver extends BroadcastReceiver {
                 .build();
         // Show notification
         NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        manager.notify(intent.getIntExtra("id", 2030), notification);
+        manager.notify(intent.getIntExtra("id", 1), notification);
     }
 }
