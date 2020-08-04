@@ -27,9 +27,9 @@ public class AppDatabaseHelper extends SQLiteOpenHelper {
 
     // Table trace
     public static final String TABLE_NAME = "trace_info";
-    public static final String COLUMN_BLID = "blid";
-    public static final String COLUMN_BLID_CONTACT = "blid_contact";
-    public static final String COLUMN_MAC_ID = "macid";
+    public static final String COLUMN_BLID = "blid"; // User Code
+    public static final String COLUMN_BLID_CONTACT = "blid_contact"; // Bluezone Id scan
+    public static final String COLUMN_MAC_ID = "macid"; // MacId scan
     public static final String COLUMN_RSSI = "rssi";
     public static final String COLUMN_TX_POWER = "tx_power";
     public static final String COLUMN_STATE = "state";
@@ -284,30 +284,97 @@ public class AppDatabaseHelper extends SQLiteOpenHelper {
         return ret;
     }
 
-//    /**
-//     * Get all data
-//     * @param listBlid
-//     * @return
-//     */
-//    public Cursor getCursorData(String[] listBlid) {
-//        // ret
-//        Cursor cursor = null;
-//
-//        // open
-//        openDatabase();
-//
-//        // Check
-//        if (listBlid == null || listBlid.length == 0) {
-//            cursor = mDatabase.query(TABLE_NAME, null, null,
-//                    null, null, null, null, null);
-//        } else {
-//            cursor = mDatabase.query(TABLE_NAME, null,
-//                    COLUMN_NAMES_USER_ID + " IN('" + TextUtils.join("', '", listBlid) + "')",
-//                    null, null, null, null, null);
-//        }
-//
-//        return cursor;
-//    }
+    /**
+     * Get all data
+     * @param listBlid
+     * @return
+     */
+    public Cursor getCursorData(String[] listBlid) {
+        // ret
+        Cursor cursor = null;
+
+        // open
+        openDatabase();
+
+        // Check
+        if (listBlid == null || listBlid.length == 0) {
+            cursor = mDatabase.query(TABLE_NAME, null, null,
+                    null, null, null, null, null);
+        } else {
+            cursor = mDatabase.query(TABLE_NAME, null,
+                    COLUMN_BLID_CONTACT + " IN('" + TextUtils.join("', '", listBlid) + "')",
+                    null, null, null, null, null);
+        }
+
+        return cursor;
+    }
+
+    /**
+     * is Trace
+     * @param bluezoneId
+     * @return
+     */
+    public boolean isTrace(byte[] bluezoneId, long timeStart, long timeEnd) {
+
+        boolean ret = false;
+
+        // ret
+        Cursor cursor = null;
+
+        // open
+        openDatabase();
+
+        try {
+            cursor = mDatabase.query(TABLE_NAME, null, "hex( + " + COLUMN_BLID_CONTACT + ") = ? and " +
+                            COLUMN_TIME + " >= ? and " + COLUMN_TIME + " <= ?",
+                    new String[]{AppUtils.convertBytesToHex(bluezoneId), String.valueOf(timeStart), String.valueOf(timeEnd)},
+                    null, null, null, null);
+            if (cursor != null && cursor.getCount() > 0) {
+                ret = true;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+
+        return ret;
+    }
+
+    /**
+     * Get all data
+     * @return
+     */
+    public Cursor getCursorData() {
+        // ret
+        Cursor cursor = null;
+
+        // open
+        openDatabase();
+
+        cursor = mDatabase.query(TABLE_NAME, null, null,
+                null, null, null, null, null);
+        return cursor;
+    }
+
+    /**
+     * Get all data
+     * @return
+     */
+    public Cursor getCursorData(long timeStart) {
+        // ret
+        Cursor cursor = null;
+
+        // open
+        openDatabase();
+
+        cursor = mDatabase.query(TABLE_NAME, null, COLUMN_TIME + " >= ? ",
+                new String[]{String.valueOf(timeStart)},
+                null, null, null, null);
+        return cursor;
+    }
 
     @Override
     protected void finalize() throws Throwable {

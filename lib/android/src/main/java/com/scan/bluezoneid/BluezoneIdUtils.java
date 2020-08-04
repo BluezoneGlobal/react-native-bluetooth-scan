@@ -5,7 +5,7 @@ import android.util.Base64;
 
 import com.google.gson.Gson;
 import com.scan.AppUtils;
-import com.scan.BluezonerIdGenerator;
+import com.scan.preference.AppPreferenceManager;
 
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
@@ -141,6 +141,36 @@ public class BluezoneIdUtils {
     public static boolean isBluezoneIdValidate(byte[] dataBytes) {
         if (dataBytes != null && dataBytes.length == BluezoneIdConstants.Config.LENGTH_BYTE) {
             return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Check bluezone id changed between
+     * @param timeStart
+     * @param timeEnd
+     * @return
+     */
+    public static boolean isBluezoneIdChanged(Context context, long timeStart, long timeEnd) {
+        // Get max sub sub key per day
+        int maxSubKey = AppPreferenceManager.getInstance(context).getInt(BluezoneIdConstants.Preference.MAX_NUMBER_SUB_KEY_PER_DAY,
+                BluezoneIdConstants.Config.MAX_NUMBER_SUB_KEY_PER_DAY);
+        if (maxSubKey < 1) {
+            maxSubKey = BluezoneIdConstants.Config.MAX_NUMBER_SUB_KEY_PER_DAY;
+        }
+
+        // Date subkey
+        try {
+            BluezoneDateSubKey dateSubKeyStart = new BluezoneDateSubKey(timeStart, maxSubKey);
+            BluezoneDateSubKey dateSubKeyEnd = new BluezoneDateSubKey(timeEnd, maxSubKey);
+
+            if (dateSubKeyStart.getIndexSubKey() != dateSubKeyEnd.getIndexSubKey()) {
+                return true;
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
         return false;
