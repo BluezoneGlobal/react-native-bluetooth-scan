@@ -238,4 +238,8 @@ public class TraceCovidModuleManager {
         AppPreferenceManager.getInstance(reactContext).setLanguage(language);
         AppUtils.changeLanguageNotification(reactContext, language);
     }
+
+    public void setContentNotify(String title, String content) {
+        AppUtils.changeNotification(reactContext, title, content);
+    }
 }

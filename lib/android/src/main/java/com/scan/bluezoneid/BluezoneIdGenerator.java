@@ -188,7 +188,7 @@ public class BluezoneIdGenerator {
 
         try {
             // check
-            if (bluezoneDailyKey != null && bluezoneDailyKey.length == 32) {
+            if (bluezoneDailyKey != null && bluezoneDailyKey.length == BluezoneIdConstants.Config.LENGTH_DAILY_KEY) {
                 long now = System.currentTimeMillis();
 
                 // Get max sub sub key per day
@@ -240,7 +240,7 @@ public class BluezoneIdGenerator {
     public static byte[] convertBluezoneSubKeyToBluezoneId(byte[] bluezoneSubKey) {
         byte[] bluezoneDailyId = new byte[BluezoneIdConstants.Config.LENGTH_BYTE];
 
-        if (bluezoneSubKey != null && bluezoneSubKey.length == 32) {
+        if (bluezoneSubKey != null && bluezoneSubKey.length == BluezoneIdConstants.Config.LENGTH_DAILY_KEY) {
             // 12 Byte: 4 x 4 bytes + 2 x 8 bytes
             for (int i = 0; i < BluezoneIdConstants.Config.LENGTH_BYTE; i++) {
                 int start = i * 4;

@@ -5,7 +5,6 @@ import android.util.Base64;
 
 import com.google.gson.Gson;
 import com.scan.AppUtils;
-import com.scan.BluezonerIdGenerator;
 import com.scan.preference.AppPreferenceManager;
 
 import java.nio.ByteBuffer;

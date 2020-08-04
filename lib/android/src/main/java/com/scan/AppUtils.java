@@ -533,6 +533,15 @@ public class AppUtils {
         notificationManager.notify(AppConstants.NOTIFICATION_SERVICE_BLUE_ZONE_ID, notificationBuider.build());
     }
 
+    public static void changeNotification(Context context, String title, String content) {
+        if(notificationBuider != null) {
+            notificationBuider.setContentTitle(title);
+            notificationBuider.setStyle(new NotificationCompat.BigTextStyle().bigText(content));
+            notificationBuider.setContentText(content);
+            notificationManager.notify(AppConstants.NOTIFICATION_SERVICE_BLUE_ZONE_ID, notificationBuider.build());
+        }
+    }
+
     /*
      * Tao class
      */

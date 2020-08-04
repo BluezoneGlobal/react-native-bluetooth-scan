@@ -24,7 +24,7 @@ import java.util.ArrayList;
 public class BluezoneIdTrace {
 
     /**
-     * Lấy đường dẫn F0
+     * Get Path Data
      * @param context
      * @return
      */
@@ -34,31 +34,9 @@ public class BluezoneIdTrace {
     }
 
     /**
-     * Lay thong tin F0
+     * Get Bluezoner Info
      * @param context
-     * @return
-     */
-//    public static String getBluezoneIdInfo(Context context) {
-//        String ret = "";
-//        BluezoneDailyKey bluezoneDailyKey = BluezoneIdGenerator.getInstance(context).getBluezoneBaseId();
-//        if (bluezoneDailyKey != null) {
-//            JSONObject jsonObject = new JSONObject();
-//            try {
-//                jsonObject.put(BluezoneIdConstants.TraceInfo.JSON_BLUEZONE_BASE_ID, AppUtils.convertBytesToHex(bluezoneDailyKey.first));
-//                jsonObject.put(BluezoneIdConstants.TraceInfo.JSON_BLUEZONE_BASE_ID_TIME, bluezoneDailyKey.second.getTimeStart() / 1000);
-//
-//                ret = jsonObject.toString();
-//            } catch (JSONException e) {
-//                e.printStackTrace();
-//            }
-//        }
-//
-//        return ret;
-//    }
-
-    /**
-     * Lay thong tin F0
-     * @param context
+     * @param dayStartTrace
      * @return
      */
     public static String getBluezoneIdInfo(Context context, int dayStartTrace) {
@@ -87,16 +65,14 @@ public class BluezoneIdTrace {
     }
 
     /**
-     * Export Data F0
+     * Export Data
      * @param context
      * @return
      */
     public static String exportTraceData(Context context) {
         String ret = "";
 
-        // Lấy đường dẫn F0
         File fileTrace = getPathTraceData(context, BluezoneIdConstants.TraceInfo.FILE_NAME_TRACE_DATA);
-
         if (fileTrace != null) {
             // delete old
             if (fileTrace.exists()) {
@@ -112,30 +88,21 @@ public class BluezoneIdTrace {
 
                     // Get all cursor
                     Cursor cursor = AppDatabaseHelper.getInstance(context).getCursorData();
-
-                    // Check
                     if (cursor != null) {
                         // Read
                         while (cursor.moveToNext()) {
-
                             try {
-                                // Data
                                 String retItem = AppUtils.convertBytesToHex(cursor.getBlob(AppDatabaseHelper.COLUMN_INDEX_BLID)) + "\t" +
                                         AppUtils.convertBytesToHex(cursor.getBlob(AppDatabaseHelper.COLUMN_INDEX_BLID_CONTACT)) + "\t" +
                                         cursor.getInt(AppDatabaseHelper.COLUMN_INDEX_RSSI) + "\t" +
                                         cursor.getLong(AppDatabaseHelper.COLUMN_INDEX_TIME) + "\n";
 
-                                // Write data
                                 fi.write(retItem.getBytes());
                             } catch (Exception e) {
                                 e.printStackTrace();
                             }
                         }
-
-                        // File backup
                         ret = fileTrace.getAbsolutePath();
-
-                        // Close cusor
                         cursor.close();
                     }
                 }
@@ -156,14 +123,13 @@ public class BluezoneIdTrace {
     }
 
     /**
-     * Export Data F0
+     * Export Data
      * @param context
+     * @param dayStartTrace
      * @return
      */
     public static String exportTraceData(Context context, int dayStartTrace) {
         String ret = "";
-
-        // Lấy đường dẫn F0
         File fileTrace = getPathTraceData(context, BluezoneIdConstants.TraceInfo.FILE_NAME_TRACE_DATA);
 
         if (fileTrace != null) {
@@ -184,30 +150,21 @@ public class BluezoneIdTrace {
 
                     // Get all cursor
                     Cursor cursor = AppDatabaseHelper.getInstance(context).getCursorData(timeEnd);
-
-                    // Check
                     if (cursor != null) {
-                        // Read
                         while (cursor.moveToNext()) {
-
                             try {
-                                // Data
                                 String retItem = AppUtils.convertBytesToHex(cursor.getBlob(AppDatabaseHelper.COLUMN_INDEX_BLID)) + "\t" +
                                         AppUtils.convertBytesToHex(cursor.getBlob(AppDatabaseHelper.COLUMN_INDEX_BLID_CONTACT)) + "\t" +
                                         cursor.getInt(AppDatabaseHelper.COLUMN_INDEX_RSSI) + "\t" +
                                         cursor.getLong(AppDatabaseHelper.COLUMN_INDEX_TIME) + "\n";
 
-                                // Write data
                                 fi.write(retItem.getBytes());
                             } catch (Exception e) {
                                 e.printStackTrace();
                             }
                         }
 
-                        // File backup
                         ret = fileTrace.getAbsolutePath();
-
-                        // Close cusor
                         cursor.close();
                     }
                 }
@@ -228,14 +185,13 @@ public class BluezoneIdTrace {
     }
 
     /**
-     * Kiem tra tiep xuc hay khong ?
+     * Check Contact F
      * @param context
      * @param dataF0
      * @return
      */
     public static boolean isContactF(Context context, String dataF0) {
         boolean ret = false;
-        // Phân tích Data F0
         if (!TextUtils.isEmpty(dataF0)) {
             try {
                 JSONObject jsonDataF0 = new JSONObject(dataF0);
@@ -262,8 +218,9 @@ public class BluezoneIdTrace {
     }
 
     /**
+     * Get Trace list
      * @param context
-     * @param dataF0 Lay thong tin tiep xuc
+     * @param dataF0
      * @return
      */
         public static ArrayList<String> getTraceF(Context context, String dataF0) {
@@ -294,10 +251,10 @@ public class BluezoneIdTrace {
     }
 
     /**
-     * Check tiếp xúc F0
+     * Check Contact
      * @param context
-     * @param bluezoneDailyKey DaiLy Key F0
-     * @param timeDk Thời gian tạo F0
+     * @param bluezoneDailyKey DaiLy Key
+     * @param timeDk Thời gian tạo
      * @param max Số lần rolling
      * @param timeTe Thời gian kết thúc truy vết
      * @return
@@ -309,7 +266,7 @@ public class BluezoneIdTrace {
 
         // Convert Bytes -> hex
         byte[] bluezoneDailyKeyk = AppUtils.convertHexToBytes(bluezoneDailyKey);
-        if (bluezoneDailyKeyk.length == 32) {
+        if (bluezoneDailyKeyk.length == BluezoneIdConstants.Config.LENGTH_DAILY_KEY) {
             //  Create first SubKey
             byte[] dataCreateFirstSubKey = bluezoneDailyKeyk;
             byte[] bluezoneSubKey = BluezoneIdUtils.addByteArrays(dataCreateFirstSubKey, BluezoneIdConstants.Config.SALT_SUB_KEY_DAILY);

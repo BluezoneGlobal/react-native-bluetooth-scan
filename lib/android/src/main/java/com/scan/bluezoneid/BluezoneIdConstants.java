@@ -18,6 +18,9 @@ public class BluezoneIdConstants {
         // Length Byte
         public static final int LENGTH_BYTE = 12;
 
+        // Length daily key
+        public static final int LENGTH_DAILY_KEY = 32;
+
         // Char random
         static final String CHAR_RANDOM = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
