@@ -45,8 +45,6 @@ import com.scan.database.CacheDatabaseHelper;
 import com.scan.model.ScanConfig;
 import com.scan.preference.AppPreferenceManager;
 
-import org.json.JSONException;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
@@ -174,14 +172,14 @@ public class ServiceTraceCovid extends Service {
                                 // Create notify schuled
                                 try {
                                     AppUtils.createNotifyRequestPermisson(getApplicationContext());
-                                } catch (JSONException e) {
+                                } catch (Exception e) {
                                     e.printStackTrace();
                                 }
                             } else {
                                 // Permission granted
                                 try {
                                     AppUtils.clearNotifyRequestPermisson(getApplicationContext());
-                                } catch (JSONException e) {
+                                } catch (Exception e) {
                                     e.printStackTrace();
                                 }
                             }
@@ -1066,7 +1064,7 @@ public class ServiceTraceCovid extends Service {
                                     // Create notify bluetooth
                                     try {
                                         AppUtils.createNotifyRequestBluetooth(getApplicationContext());
-                                    } catch (JSONException e) {
+                                    } catch (Exception e) {
                                         e.printStackTrace();
                                     }
                                 }
@@ -1086,7 +1084,7 @@ public class ServiceTraceCovid extends Service {
                                 writeLog("Bluetooth : ON");
                                 try {
                                     AppUtils.clearNotifyRequestBluetooth(getApplicationContext());
-                                } catch (JSONException e) {
+                                } catch (Exception e) {
                                     e.printStackTrace();
                                 }
 
@@ -1245,14 +1243,14 @@ public class ServiceTraceCovid extends Service {
                             // Create notify bluetooth
                             try {
                                 AppUtils.createNotifyRequestLocation(getApplicationContext());
-                            } catch (JSONException e) {
+                            } catch (Exception e) {
                                 e.printStackTrace();
                             }
                         }
                     } else {
                         try {
                             AppUtils.clearNotifyRequestLocation(getApplicationContext());
-                        } catch (JSONException e) {
+                        } catch (Exception e) {
                             e.printStackTrace();
                         }
                     }
