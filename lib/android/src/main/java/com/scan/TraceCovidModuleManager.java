@@ -15,6 +15,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.util.Map;
 
 public class TraceCovidModuleManager {
     public ReactApplicationContext reactContext;
@@ -33,9 +34,6 @@ public class TraceCovidModuleManager {
         Log.e("Scan Full: ", scanFull ? "true" : "false");
 
         intent.putExtra(ServiceTraceCovid.EXTRA_SCHEDULER_TYPE, scanFull ? ServiceTraceCovid.TYPE_SCAN_FULL : ServiceTraceCovid.TYPE_APP_EXIT);
-//        intent.putExtra("language", language);
-
-        // File dir = reactContext.getDatabasePath("app_db.db");
 
         // Đọc Config trong asyncConfig
         this.setConfigFromAsyncStorege();
@@ -51,7 +49,7 @@ public class TraceCovidModuleManager {
     public void setConfigFromAsyncStorege() throws JSONException {
         String strConfig = storageApi.getItem("Configuration");
 
-        if(strConfig == null) {
+        if(strConfig == null || strConfig.equals("")) {
             return;
         }
 
@@ -72,6 +70,7 @@ public class TraceCovidModuleManager {
             int batteryLevelEnableBluetooth = json.has("BatteryEnableBluetooth") ? json.getInt("BatteryEnableBluetooth") : -1;
             int intervalRequestPermisson = json.has("IntervalRequestPermisson") ? json.getInt("IntervalRequestPermisson") : -1;
             int maxNumberSubKey = json.has("MaxNumberSubKeyPerDay") ? json.getInt("MaxNumberSubKeyPerDay") : -1;
+            int timeAutoEnableBluetooth = json.has("TimeAutoEnableBluetooth") ? json.getInt("TimeAutoEnableBluetooth") : -1;
 
             AppConfig.setConfigs(
                     reactContext,
@@ -88,7 +87,8 @@ public class TraceCovidModuleManager {
                     timeIntervalEnableBluetooth,
                     batteryLevelEnableBluetooth,
                     intervalRequestPermisson,
-                    maxNumberSubKey
+                    maxNumberSubKey,
+                    timeAutoEnableBluetooth
             );
         }
         catch (Exception e) {
@@ -111,6 +111,8 @@ public class TraceCovidModuleManager {
         int batteryLevelEnableBluetooth = configs.hasKey("BatteryEnableBluetooth") ? configs.getInt("BatteryEnableBluetooth") : -1;
         int intervalRequestPermisson = configs.hasKey("IntervalRequestPermisson") ? configs.getInt("IntervalRequestPermisson") : -1;
         int maxNumberSubKey = configs.hasKey("MaxNumberSubKeyPerDay") ? configs.getInt("MaxNumberSubKeyPerDay") : -1;
+        int timeAutoEnableBluetooth = configs.hasKey("TimeAutoEnableBluetooth") ? configs.getInt("TimeAutoEnableBluetooth") : -1;
+
         AppConfig.setConfigs(
                 reactContext,
                 timeScanBleRun,
@@ -126,62 +128,69 @@ public class TraceCovidModuleManager {
                 timeIntervalEnableBluetooth,
                 batteryLevelEnableBluetooth,
                 intervalRequestPermisson,
-                maxNumberSubKey
+                maxNumberSubKey,
+                timeAutoEnableBluetooth
         );
 
-        ReadableMap notifyRequestBluetooth = configs.hasKey("NotificationRequestBluetooth") ? configs.getMap("NotificationRequestBluetooth") : null;
-        if(notifyRequestBluetooth != null) {
-            String itemRepeat = notifyRequestBluetooth.hasKey("itemRepeat") ? notifyRequestBluetooth.getArray("itemRepeat").toString() : "";
-            String bigTextVi = notifyRequestBluetooth.hasKey("bigText") ? notifyRequestBluetooth.getString("bigText") : "";
-            String bigTextEn = notifyRequestBluetooth.hasKey("bigText_en") ? notifyRequestBluetooth.getString("bigText_en") : "";
-            String subTextVi = notifyRequestBluetooth.hasKey("subText") ? notifyRequestBluetooth.getString("subText") : "";
-            String subTextEn = notifyRequestBluetooth.hasKey("subText_en") ? notifyRequestBluetooth.getString("subText_en") : "";
-            String titleVi = notifyRequestBluetooth.hasKey("title") ? notifyRequestBluetooth.getString("title") : "";
-            String titleEn = notifyRequestBluetooth.hasKey("title_en") ? notifyRequestBluetooth.getString("title_en") : "";
-            String messageVi = notifyRequestBluetooth.hasKey("message") ? notifyRequestBluetooth.getString("message") : "";
-            String messageEn = notifyRequestBluetooth.hasKey("message_en") ? notifyRequestBluetooth.getString("message_en") : "";
-            AppConfig.setNotifyRequestBluContent(reactContext, itemRepeat, bigTextVi, bigTextEn, subTextVi, subTextEn, titleVi, titleEn, messageVi, messageEn);
+        AppPreferenceManager preferenceManager = AppPreferenceManager.getInstance(reactContext);
+
+        Map<String, String> oldScanNotificationConfig = preferenceManager.getScanNotification();
+        Map<String, String> oldScheduleScanNotificationConfig = preferenceManager.getScheduleScanNotification();
+        Map<String, String> oldEnableBluetoothNotificationConfig =  preferenceManager.getEnableBluetoothNotification();
+
+        ReadableMap scheduleScanNotification = configs.hasKey("AndroidScheduleScanNotification") ? configs.getMap("AndroidScheduleScanNotification") : null;
+        if(scheduleScanNotification != null) {
+            String itemRepeat = scheduleScanNotification.hasKey("itemRepeat") ? scheduleScanNotification.getArray("itemRepeat").toString() : null;
+            String bigTextVi = scheduleScanNotification.hasKey("bigText") ? scheduleScanNotification.getString("bigText") : null;
+            String bigTextEn = scheduleScanNotification.hasKey("bigTextEn") ? scheduleScanNotification.getString("bigTextEn") : null;
+            String subTextVi = scheduleScanNotification.hasKey("subText") ? scheduleScanNotification.getString("subText") : null;
+            String subTextEn = scheduleScanNotification.hasKey("subTextEn") ? scheduleScanNotification.getString("subTextEn") : null;
+            String titleVi = scheduleScanNotification.hasKey("title") ? scheduleScanNotification.getString("title") : null;
+            String titleEn = scheduleScanNotification.hasKey("titleEn") ? scheduleScanNotification.getString("titleEn") : null;
+            String messageVi = scheduleScanNotification.hasKey("message") ? scheduleScanNotification.getString("message") : null;
+            String messageEn = scheduleScanNotification.hasKey("messageEn") ? scheduleScanNotification.getString("messageEn") : null;
+            String buttonText = scheduleScanNotification.hasKey("buttonText") ? scheduleScanNotification.getString("buttonText") : null;
+            String buttonTextEn = scheduleScanNotification.hasKey("buttonTextEn") ? scheduleScanNotification.getString("buttonTextEn") : null;
+            preferenceManager.setScheduleScanNotification(bigTextVi, bigTextEn, subTextVi, subTextEn, titleVi, titleEn, messageVi, messageEn, itemRepeat, buttonText, buttonTextEn);
         }
 
-        ReadableMap notifyRequestLocation = configs.hasKey("NotificationRequestLocation") ? configs.getMap("NotificationRequestLocation") : null;
-        if(notifyRequestLocation != null) {
-            String itemRepeat = notifyRequestLocation.hasKey("itemRepeat") ? notifyRequestLocation.getArray("itemRepeat").toString() : "";
-            String bigTextVi = notifyRequestLocation.hasKey("bigText") ? notifyRequestLocation.getString("bigText") : "";
-            String bigTextEn = notifyRequestLocation.hasKey("bigText_en") ? notifyRequestLocation.getString("bigText_en") : "";
-            String subTextVi = notifyRequestLocation.hasKey("subText") ? notifyRequestLocation.getString("subText") : "";
-            String subTextEn = notifyRequestLocation.hasKey("subText_en") ? notifyRequestLocation.getString("subText_en") : "";
-            String titleVi = notifyRequestLocation.hasKey("title") ? notifyRequestLocation.getString("title") : "";
-            String titleEn = notifyRequestLocation.hasKey("title_en") ? notifyRequestLocation.getString("title_en") : "";
-            String messageVi = notifyRequestLocation.hasKey("message") ? notifyRequestLocation.getString("message") : "";
-            String messageEn = notifyRequestLocation.hasKey("message_en") ? notifyRequestLocation.getString("message_en") : "";
-            AppConfig.setNotifyRequestLocationContent(reactContext, itemRepeat, bigTextVi, bigTextEn, subTextVi, subTextEn, titleVi, titleEn, messageVi, messageEn);
+        ReadableMap scanNotification = configs.hasKey("AndroidScanNotification") ? configs.getMap("AndroidScanNotification") : null;
+        if(scanNotification != null) {
+            String bigTextVi = scanNotification.hasKey("bigText") ? scanNotification.getString("bigText") : null;
+            String bigTextEn = scanNotification.hasKey("bigTextEn") ? scanNotification.getString("bigTextEn") : null;
+            String subTextVi = scanNotification.hasKey("subText") ? scanNotification.getString("subText") : null;
+            String subTextEn = scanNotification.hasKey("subTextEn") ? scanNotification.getString("subTextEn") : null;
+            String titleVi = scanNotification.hasKey("title") ? scanNotification.getString("title") : null;
+            String titleEn = scanNotification.hasKey("titleEn") ? scanNotification.getString("titleEn") : null;
+            String messageVi = scanNotification.hasKey("message") ? scanNotification.getString("message") : null;
+            String messageEn = scanNotification.hasKey("messageEn") ? scanNotification.getString("messageEn") : null;
+            String buttonText = scanNotification.hasKey("buttonText") ? scanNotification.getString("buttonText") : null;
+            String buttonTextEn = scanNotification.hasKey("buttonTextEn") ? scanNotification.getString("buttonTextEn") : null;
+            preferenceManager.setScanNotification(bigTextVi, bigTextEn, subTextVi, subTextEn, titleVi, titleEn, messageVi, messageEn, buttonText, buttonTextEn);
         }
 
-        ReadableMap notifyRequestPermisson = configs.hasKey("NotificationRequestPermissonAndroid") ? configs.getMap("NotificationRequestPermissonAndroid") : null;
-        if(notifyRequestLocation != null) {
-            String itemRepeat = notifyRequestPermisson.hasKey("itemRepeat") ? notifyRequestPermisson.getArray("itemRepeat").toString() : "";
-            String bigTextVi = notifyRequestPermisson.hasKey("bigText") ? notifyRequestPermisson.getString("bigText") : "";
-            String bigTextEn = notifyRequestPermisson.hasKey("bigText_en") ? notifyRequestPermisson.getString("bigText_en") : "";
-            String subTextVi = notifyRequestPermisson.hasKey("subText") ? notifyRequestPermisson.getString("subText") : "";
-            String subTextEn = notifyRequestPermisson.hasKey("subText_en") ? notifyRequestPermisson.getString("subText_en") : "";
-            String titleVi = notifyRequestPermisson.hasKey("title") ? notifyRequestPermisson.getString("title") : "";
-            String titleEn = notifyRequestPermisson.hasKey("title_en") ? notifyRequestPermisson.getString("title_en") : "";
-            String messageVi = notifyRequestPermisson.hasKey("message") ? notifyRequestPermisson.getString("message") : "";
-            String messageEn = notifyRequestPermisson.hasKey("message_en") ? notifyRequestPermisson.getString("message_en") : "";
-
-            AppPreferenceManager preferenceManager = AppPreferenceManager.getInstance(reactContext);
-            preferenceManager.setNotifyRequestPermisson(
-                    bigTextVi,
-                    bigTextEn,
-                    subTextVi,
-                    subTextEn,
-                    titleVi,
-                    titleEn,
-                    messageVi,
-                    messageEn,
-                    itemRepeat
-            );
+        ReadableMap enableBluetoothNotification = configs.hasKey("AndroidEnableBluetoothNotification") ? configs.getMap("AndroidEnableBluetoothNotification") : null;
+        if(enableBluetoothNotification != null) {
+            String bigTextVi = enableBluetoothNotification.hasKey("bigText") ? enableBluetoothNotification.getString("bigText") : null;
+            String bigTextEn = enableBluetoothNotification.hasKey("bigTextEn") ? enableBluetoothNotification.getString("bigTextEn") : null;
+            String subTextVi = enableBluetoothNotification.hasKey("subText") ? enableBluetoothNotification.getString("subText") : null;
+            String subTextEn = enableBluetoothNotification.hasKey("subTextEn") ? enableBluetoothNotification.getString("subTextEn") : null;
+            String titleVi = enableBluetoothNotification.hasKey("title") ? enableBluetoothNotification.getString("title") : null;
+            String titleEn = enableBluetoothNotification.hasKey("titleEn") ? enableBluetoothNotification.getString("titleEn") : null;
+            String messageVi = enableBluetoothNotification.hasKey("message") ? enableBluetoothNotification.getString("message") : null;
+            String messageEn = enableBluetoothNotification.hasKey("messageEn") ? enableBluetoothNotification.getString("messageEn") : null;
+            String buttonText = enableBluetoothNotification.hasKey("buttonText") ? enableBluetoothNotification.getString("buttonText") : null;
+            String buttonTextEn = enableBluetoothNotification.hasKey("buttonTextEn") ? enableBluetoothNotification.getString("buttonTextEn") : null;
+            preferenceManager.setEnableBluetoothNotification(bigTextVi, bigTextEn, subTextVi, subTextEn, titleVi, titleEn, messageVi, messageEn, buttonText, buttonTextEn);
         }
+
+//        AppUtils.scanNotificationChangeConfiguration(oldScanNotificationConfig, scanNotification);
+        try {
+            AppUtils.scheduleScanNotificationChangeConfiguration(reactContext, oldScheduleScanNotificationConfig, scheduleScanNotification);
+        } catch(Exception e) {
+
+        }
+//        AppUtils.enableBluetoothNotificationChangeConfiguration(oldEnableBluetoothNotificationConfig, enableBluetoothNotification);
     }
 
 //    public WritableMap getConfig () {
@@ -240,6 +249,6 @@ public class TraceCovidModuleManager {
     }
 
     public void setContentNotify(String title, String content) {
-        AppUtils.changeNotification(reactContext, title, content);
+        AppUtils.changeServiceNotification(R.mipmap.icon_bluezone_service, title, content);
     }
 }

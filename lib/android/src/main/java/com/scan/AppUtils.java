@@ -1,5 +1,6 @@
 package com.scan;
 
+import android.Manifest;
 import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -15,12 +16,16 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.ParcelUuid;
+import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Log;
 
+import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 
+import com.facebook.react.bridge.ReadableArray;
+import com.facebook.react.bridge.ReadableMap;
 import com.scan.apis.AsyncStorageApi;
 import com.scan.model.ScanConfig;
 import com.scan.notification.NotificationReceiver;
@@ -54,6 +59,7 @@ public class AppUtils {
     public static final ParcelUuid BLE_UUID_IOS = new ParcelUuid(UUID.fromString(AppConstants.BLE_UUID_IOS));
     public static final ParcelUuid BLE_UUID_ANDROID = new ParcelUuid(UUID.fromString(AppConstants.BLE_UUID_ANDROID));
     public static final UUID BLE_UUID_CHARECTIC = UUID.fromString(AppConstants.BLE_UUID_CHARECTIC);
+    public static final int MILISECOND_OF_DAY = 86400000;
 
     /**
      * check xem máy có support BLE hay không
@@ -120,6 +126,50 @@ public class AppUtils {
         return ret;
     }
 
+    public static boolean enableBluetoothFinal() {
+        boolean ret = false;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+            BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+            if (bluetoothAdapter != null && bluetoothAdapter.enable()) {
+                ret = true;
+            }
+        }
+
+        return ret;
+    }
+
+    public static boolean isBluetoothEnable() {
+        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if (bluetoothAdapter != null && bluetoothAdapter.isEnabled()) {
+            return true;
+        }
+        return false;
+    }
+
+    public static boolean isLocationEnable(Context context) {
+        int locationMode = 0;
+        String locationProviders;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT){
+            try {
+                locationMode = Settings.Secure.getInt(context.getContentResolver(), Settings.Secure.LOCATION_MODE);
+
+            } catch (Settings.SettingNotFoundException e) {
+                e.printStackTrace();
+                return false;
+            }
+
+            return locationMode != Settings.Secure.LOCATION_MODE_OFF;
+
+        } else{
+            locationProviders = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.LOCATION_PROVIDERS_ALLOWED);
+            return !TextUtils.isEmpty(locationProviders);
+        }
+    }
+
+    public static boolean isPermissonLocation(Context context) {
+        return ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+    }
+
     /**
      * Check permission granted
      * @param context
@@ -151,10 +201,27 @@ public class AppUtils {
      */
     public static boolean hasPermissionsExternalStorage(Context context) {
 
-        String[] storagePermissions = {android.Manifest.permission.WRITE_EXTERNAL_STORAGE, android.Manifest.permission.READ_EXTERNAL_STORAGE};
+//        String[] storagePermissions = {android.Manifest.permission.WRITE_EXTERNAL_STORAGE, android.Manifest.permission.READ_EXTERNAL_STORAGE};
 
         // Check
-        return checkSelfPermission(context, storagePermissions);
+//        return checkSelfPermission(context, storagePermissions);
+        return false;
+    }
+
+    /**
+     * Remove file
+     * @param filePath
+     */
+    public static boolean removeFile(String filePath) {
+        boolean ret = true;
+        if (!TextUtils.isEmpty(filePath)) {
+            File file = new File(filePath);
+            if (file != null && file.exists()) {
+                ret = file.delete();
+            }
+        }
+
+        return ret;
     }
 
     private static NotificationManager notificationManager;
@@ -166,15 +233,15 @@ public class AppUtils {
      */
     public static void startNotification(Service service, Context context) {
         // Check SDK
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             // Tao notifi
             AppUtils.createNotificationBluezone(context);
 
             // check and start
-            if (notification != null) {
+            if (notification != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 service.startForeground(AppConstants.NOTIFICATION_SERVICE_BLUE_ZONE_ID, notification);
             }
-        }
+//        }
     }
 
     /**
@@ -198,6 +265,12 @@ public class AppUtils {
      * @param context
      */
     public static void createNotificationChannel(Context context) {
+        // create
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            notificationManager = context.getSystemService(NotificationManager.class);
+        } else {
+            notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        }
         // Check
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel serviceChannel = new NotificationChannel(
@@ -205,8 +278,6 @@ public class AppUtils {
                     AppConstants.NOTIFICATION_CHANNEL_NAME,
                     NotificationManager.IMPORTANCE_DEFAULT);
 
-            // create
-            notificationManager = context.getSystemService(NotificationManager.class);
             notificationManager.createNotificationChannel(serviceChannel);
         }
     }
@@ -228,318 +299,6 @@ public class AppUtils {
                 .setContentText(content)
                 .setSmallIcon(R.mipmap.icon_bluezone_service)
                 .setContentIntent(pendingIntent);
-//                .setNumber(AppConstants.NOTIFY_SERVICE_NUMBER);
-    }
-
-    public static void createNotifyRequestBluetooth(Context context) throws JSONException {
-        AppUtils.clearNotifyRequestBluetooth(context);
-//        Intent notificationIntent = new Intent(context, getMainActivityClass(context));
-//        PendingIntent pendingIntent = PendingIntent.getActivity(context,
-//                AppConstants.NOTIFICATION_CHANNEL_ID_CODE, notificationIntent, 0);
-
-        String language = AppPreferenceManager.getInstance(context).getLanguage();
-        Map<String, String> notifyInfoMap = AppPreferenceManager.getInstance(context).getNotifyRequestBlue(language);
-
-//        Notification notificationBuider = new NotificationCompat.Builder(context, AppConstants.NOTIFICATION_CHANNEL_ID)
-//                .setPriority(PRIORITY_MIN)
-//                .setSubText(notifyInfoMap.get("subText") + "Now") // Sub text
-//                .setContentTitle(notifyInfoMap.get("title") + "Now") // Big text
-//                .setContentText(notifyInfoMap.get("message") + "Now") // Title
-//                .setSmallIcon(R.mipmap.icon_bluezone_service)
-//                .setContentIntent(pendingIntent)
-//                .build();
-//        manager.notify(AppConstants.NOTIFICATION_BLUETOOTH_BLUE_ZONE_ID, notificationBuider);
-
-        // Create notify repeat
-        String strItemRepeat = notifyInfoMap.get("itemRepeat");
-        if(strItemRepeat == null || strItemRepeat.length() == 0) {
-            return;
-        }
-        JSONArray itemRepeatArray = null;
-        try {
-            itemRepeatArray = new JSONArray(strItemRepeat);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-        long now = System.currentTimeMillis();
-        for (int i = 0; i < itemRepeatArray.length(); i++) {
-            JSONObject item = itemRepeatArray.getJSONObject(i);
-            if(!item.has("id")) {
-                break;
-            }
-            int notificationId = item.getInt("id");
-            int dayStartTime = item.getInt("dayStartTime");
-            int repeatTime = item.getInt("repeatTime");
-
-            Calendar calendar = Calendar.getInstance();
-            calendar.setTimeInMillis(now);
-            calendar.set(Calendar.HOUR_OF_DAY, 0);
-            calendar.set(Calendar.MINUTE, 0);
-            calendar.set(Calendar.SECOND, 0);
-            calendar.set(Calendar.MILLISECOND, 0);
-            long iTime = calendar.getTimeInMillis() + dayStartTime;
-            if (iTime < now) {
-                iTime += 86400000;
-            }
-
-            Intent intent = new Intent(context, NotificationReceiver.class);
-            intent.putExtra("subText", notifyInfoMap.get("subText"));
-            intent.putExtra("subText_en", notifyInfoMap.get("subText_en"));
-            intent.putExtra("bigText", notifyInfoMap.get("bigText"));
-            intent.putExtra("bigText_en", notifyInfoMap.get("bigText_en"));
-            intent.putExtra("title", notifyInfoMap.get("title"));
-            intent.putExtra("title_en", notifyInfoMap.get("title_en"));
-            intent.putExtra("message", notifyInfoMap.get("message"));
-            intent.putExtra("message_en", notifyInfoMap.get("message_en"));
-            intent.putExtra("id", notificationId);
-            PendingIntent pending = PendingIntent.getBroadcast(context, notificationId, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-
-            // Schdedule notification bluetooth
-            AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-            alarmManager.setInexactRepeating(AlarmManager.RTC_WAKEUP, iTime, repeatTime, pending);
-        }
-//        Intent intent = new Intent(context, NotificationReceiver.class);
-//        intent.putExtra("subText", notifyInfoMap.get("subText"));
-//        intent.putExtra("subText", notifyInfoMap.get("subText"));
-//        intent.putExtra("bigText", notifyInfoMap.get("bigText"));
-//        intent.putExtra("bigText", notifyInfoMap.get("bigText"));
-//        intent.putExtra("title", notifyInfoMap.get("title"));
-//        intent.putExtra("title", notifyInfoMap.get("title"));
-//        intent.putExtra("id", AppConstants.NOTIFICATION_BLUETOOTH_BLUE_ZONE_ID);
-//        PendingIntent pending = PendingIntent.getBroadcast(context, AppConstants.NOTIFICATION_BLUETOOTH_BLUE_ZONE_ID, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-//        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-//        alarmManager.setInexactRepeating(AlarmManager.RTC_WAKEUP, now + 20000L, 20000L, pending);
-
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-//            alarmManager.setExact(AlarmManager.RTC_WAKEUP, fireDate, pendingIntent);
-//        } else {
-//            alarmManager.set(AlarmManager.RTC_WAKEUP, fireDate, pendingIntent);
-//        }
-//        alarmManager.setInexactRepeating(AlarmManager.RTC_WAKEUP, now + 20000L, 20000L, pending);
-    }
-
-    public static void clearNotifyRequestBluetooth(Context context) throws JSONException {
-        String language = AppPreferenceManager.getInstance(context).getLanguage();
-        Map<String, String> notifyInfoMap = AppPreferenceManager.getInstance(context).getNotifyRequestBlue(language);
-        String strItemRepeat = notifyInfoMap.get("itemRepeat");
-        if(strItemRepeat == null || strItemRepeat.length() == 0) {
-            return;
-        }
-        JSONArray itemRepeatArray = null;
-        try {
-            itemRepeatArray = new JSONArray(strItemRepeat);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
-        for (int i = 0; i < itemRepeatArray.length(); i++) {
-            JSONObject item = itemRepeatArray.getJSONObject(i);
-            if(!item.has("id")) {
-                break;
-            }
-            int notificationId = item.getInt("id");
-            Bundle b = new Bundle();
-            b.putString("id", String.valueOf(notificationId));
-            Intent notificationIntent = new Intent(context, NotificationReceiver.class);
-            notificationIntent.putExtra("id", notificationId);
-            notificationIntent.putExtras(b);
-            PendingIntent pendingIntent = PendingIntent.getBroadcast(context, notificationId, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-            AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-            alarmManager.cancel(pendingIntent);
-            notificationManager.cancel(notificationId);
-        }
-    }
-
-    public static void createNotifyRequestLocation(Context context) throws JSONException {
-        AppUtils.clearNotifyRequestLocation(context);
-        String language = AppPreferenceManager.getInstance(context).getLanguage();
-        Map<String, String> notifyInfoMap = AppPreferenceManager.getInstance(context).getNotifyRequestLocation(language);
-
-        // Create notify repeat
-        String strItemRepeat = notifyInfoMap.get("itemRepeat");
-        if(strItemRepeat == null || strItemRepeat.length() == 0) {
-            return;
-        }
-        JSONArray itemRepeatArray = null;
-        try {
-            itemRepeatArray = new JSONArray(strItemRepeat);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-        long now = System.currentTimeMillis();
-        for (int i = 0; i < itemRepeatArray.length(); i++) {
-            JSONObject item = itemRepeatArray.getJSONObject(i);
-            if(!item.has("id")) {
-                break;
-            }
-            int notificationId = item.getInt("id");
-            int dayStartTime = item.getInt("dayStartTime");
-            int repeatTime = item.getInt("repeatTime");
-
-            Calendar calendar = Calendar.getInstance();
-            calendar.setTimeInMillis(now);
-            calendar.set(Calendar.HOUR_OF_DAY, 0);
-            calendar.set(Calendar.MINUTE, 0);
-            calendar.set(Calendar.MILLISECOND, 0);
-            long iTime = calendar.getTimeInMillis() + dayStartTime;
-            if (iTime < now) {
-                iTime += 86400000;
-            }
-
-            Intent intent = new Intent(context, NotificationReceiver.class);
-            intent.putExtra("subText", notifyInfoMap.get("subText"));
-            intent.putExtra("subText_en", notifyInfoMap.get("subText_en"));
-            intent.putExtra("bigText", notifyInfoMap.get("bigText"));
-            intent.putExtra("bigText_en", notifyInfoMap.get("bigText_en"));
-            intent.putExtra("title", notifyInfoMap.get("title"));
-            intent.putExtra("title_en", notifyInfoMap.get("title_en"));
-            intent.putExtra("message", notifyInfoMap.get("message"));
-            intent.putExtra("message_en", notifyInfoMap.get("message_en"));
-            PendingIntent pending = PendingIntent.getBroadcast(context, notificationId, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-
-            // Schdedule notification
-            AlarmManager manager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-            manager.setInexactRepeating(AlarmManager.RTC_WAKEUP, iTime, repeatTime, pending);
-        }
-    }
-
-    public static void clearNotifyRequestLocation(Context context) throws JSONException {
-        String language = AppPreferenceManager.getInstance(context).getLanguage();
-        Map<String, String> notifyInfoMap = AppPreferenceManager.getInstance(context).getNotifyRequestLocation(language);
-        String strItemRepeat = notifyInfoMap.get("itemRepeat");
-        if(strItemRepeat == null || strItemRepeat.length() == 0) {
-            return;
-        }
-        JSONArray itemRepeatArray = null;
-        try {
-            itemRepeatArray = new JSONArray(strItemRepeat);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
-        for (int i = 0; i < itemRepeatArray.length(); i++) {
-            JSONObject item = itemRepeatArray.getJSONObject(i);
-            if(!item.has("id")) {
-                break;
-            }
-            int notificationId = item.getInt("id");
-            Bundle b = new Bundle();
-            b.putString("id", String.valueOf(notificationId));
-            Intent notificationIntent = new Intent(context, NotificationReceiver.class);
-            notificationIntent.putExtra("id", notificationId);
-            notificationIntent.putExtras(b);
-            PendingIntent pendingIntent = PendingIntent.getBroadcast(context, notificationId, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-            AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-            alarmManager.cancel(pendingIntent);
-            notificationManager.cancel(notificationId);
-        }
-    }
-
-    public static void createNotifyRequestPermisson(Context context) throws JSONException {
-        AppUtils.clearNotifyRequestPermisson(context);
-        String language = AppPreferenceManager.getInstance(context).getLanguage();
-        Map<String, String> notifyInfoMap = AppPreferenceManager.getInstance(context).getNotifyRequestPermisson(language);
-
-        // Create notify repeat
-        String strItemRepeat = notifyInfoMap.get("itemRepeat");
-        if(strItemRepeat == null || strItemRepeat.length() == 0) {
-            return;
-        }
-        JSONArray itemRepeatArray = null;
-        try {
-            itemRepeatArray = new JSONArray(strItemRepeat);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-        long now = System.currentTimeMillis();
-        for (int i = 0; i < itemRepeatArray.length(); i++) {
-            JSONObject item = itemRepeatArray.getJSONObject(i);
-            if(!item.has("id")) {
-                break;
-            }
-            int notificationId = item.getInt("id");
-            int dayStartTime = item.getInt("dayStartTime");
-            int repeatTime = item.getInt("repeatTime");
-
-            Calendar calendar = Calendar.getInstance();
-            calendar.setTimeInMillis(now);
-            calendar.set(Calendar.HOUR_OF_DAY, 0);
-            calendar.set(Calendar.MINUTE, 0);
-            calendar.set(Calendar.MILLISECOND, 0);
-            long iTime = calendar.getTimeInMillis() + dayStartTime;
-            if (iTime < now) {
-                iTime += 86400000;
-            }
-
-            Intent intent = new Intent(context, NotificationReceiver.class);
-            intent.putExtra("subText", notifyInfoMap.get("subText"));
-            intent.putExtra("subText_en", notifyInfoMap.get("subText_en"));
-            intent.putExtra("bigText", notifyInfoMap.get("bigText"));
-            intent.putExtra("bigText_en", notifyInfoMap.get("bigText_en"));
-            intent.putExtra("title", notifyInfoMap.get("title"));
-            intent.putExtra("title_en", notifyInfoMap.get("title_en"));
-            intent.putExtra("message", notifyInfoMap.get("message"));
-            intent.putExtra("message_en", notifyInfoMap.get("message_en"));
-            intent.putExtra("id", notificationId);
-            PendingIntent pending = PendingIntent.getBroadcast(context, notificationId, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-
-            // Schdedule notification bluetooth
-            AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-            alarmManager.setInexactRepeating(AlarmManager.RTC_WAKEUP, iTime, repeatTime, pending);
-        }
-    }
-
-    public static void clearNotifyRequestPermisson(Context context) throws JSONException {
-        String language = AppPreferenceManager.getInstance(context).getLanguage();
-        Map<String, String> notifyInfoMap = AppPreferenceManager.getInstance(context).getNotifyRequestPermisson(language);
-        String strItemRepeat = notifyInfoMap.get("itemRepeat");
-        if(strItemRepeat == null || strItemRepeat.length() == 0) {
-            return;
-        }
-        JSONArray itemRepeatArray = null;
-        try {
-            itemRepeatArray = new JSONArray(strItemRepeat);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
-        for (int i = 0; i < itemRepeatArray.length(); i++) {
-            JSONObject item = itemRepeatArray.getJSONObject(i);
-            if(!item.has("id")) {
-                break;
-            }
-            int notificationId = item.getInt("id");
-            Bundle b = new Bundle();
-            b.putString("id", String.valueOf(notificationId));
-            Intent notificationIntent = new Intent(context, NotificationReceiver.class);
-            notificationIntent.putExtra("id", notificationId);
-            notificationIntent.putExtras(b);
-            PendingIntent pendingIntent = PendingIntent.getBroadcast(context, notificationId, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-            AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-            alarmManager.cancel(pendingIntent);
-            notificationManager.cancel(notificationId);
-        }
-    }
-
-    public static void changeLanguageNotification(Context context, String language) {
-        String content = !isNullOrEmpty(language) && language.compareTo("en") == 0  ? context.getString(R.string.notification_content_en) : context.getString(R.string.notification_content);
-        String title = !isNullOrEmpty(language) && language.compareTo("en") == 0  ? context.getString(R.string.notification_title_en) : context.getString(R.string.notification_title);
-        if(notificationBuider == null) {
-            return;
-        }
-        notificationBuider.setContentTitle(title);
-        notificationBuider.setStyle(new NotificationCompat.BigTextStyle().bigText(content));
-        notificationBuider.setContentText(content);
-        notificationManager.notify(AppConstants.NOTIFICATION_SERVICE_BLUE_ZONE_ID, notificationBuider.build());
-    }
-
-    public static void changeNotification(Context context, String title, String content) {
-        if(notificationBuider != null) {
-            notificationBuider.setContentTitle(title);
-            notificationBuider.setStyle(new NotificationCompat.BigTextStyle().bigText(content));
-            notificationBuider.setContentText(content);
-            notificationManager.notify(AppConstants.NOTIFICATION_SERVICE_BLUE_ZONE_ID, notificationBuider.build());
-        }
     }
 
     /*
@@ -1064,4 +823,315 @@ public class AppUtils {
 //        calendar.setTimeInMillis(time);
 //        return calendar.getTimeInMillis();
 //    }
+
+    public static void changeLanguageNotification(Context context, String language) {
+        String content = !isNullOrEmpty(language) && language.compareTo("en") == 0  ? context.getString(R.string.notification_content_en) : context.getString(R.string.notification_content);
+        String title = !isNullOrEmpty(language) && language.compareTo("en") == 0  ? context.getString(R.string.notification_title_en) : context.getString(R.string.notification_title);
+        changeServiceNotification(R.mipmap.icon_bluezone_service, title, content);
+    }
+
+    static long getTimeStartToday () {
+        long now = System.currentTimeMillis();
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(now);
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        return calendar.getTimeInMillis();
+    }
+
+    static void createScheduleNotification(Context context, String type, Map<String, String> notifyInfoMap) throws JSONException {
+        // Create notify repeat
+        String strItemRepeat = notifyInfoMap.get("itemRepeat");
+        if(strItemRepeat == null || strItemRepeat.length() == 0) {
+            return;
+        }
+        JSONArray itemRepeatArray = null;
+        try {
+            itemRepeatArray = new JSONArray(strItemRepeat);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        long now = System.currentTimeMillis();
+        long timeStartToday = getTimeStartToday();
+        for (int i = 0; i < itemRepeatArray.length(); i++) {
+            JSONObject item = itemRepeatArray.getJSONObject(i);
+            if(!item.has("id")) {
+                break;
+            }
+            int notificationId = item.getInt("id");
+            int dayStartTime = item.getInt("dayStartTime");
+            int repeatTime = item.getInt("repeatTime");
+
+            long iTime = timeStartToday + dayStartTime;
+            if (iTime < now) {
+                iTime += MILISECOND_OF_DAY;
+            }
+
+            Intent intent = new Intent(context, NotificationReceiver.class);
+            intent.putExtra("id", notificationId);
+            intent.putExtra("type", type);
+            PendingIntent pending = PendingIntent.getBroadcast(context, notificationId, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+            // Schdedule notification bluetooth
+            AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+            alarmManager.setInexactRepeating(AlarmManager.RTC_WAKEUP, iTime, repeatTime, pending);
+        }
+    }
+
+    static void clearScheduleNotification(Context context, Map<String, String> notifyInfoMap) throws JSONException {
+        String strItemRepeat = notifyInfoMap.get("itemRepeat");
+        if(strItemRepeat == null || strItemRepeat.length() == 0) {
+            return;
+        }
+        JSONArray itemRepeatArray = null;
+        try {
+            itemRepeatArray = new JSONArray(strItemRepeat);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        if(notificationManager == null) {
+            return;
+        }
+
+        for (int i = 0; i < itemRepeatArray.length(); i++) {
+            JSONObject item = itemRepeatArray.getJSONObject(i);
+            if(!item.has("id")) {
+                break;
+            }
+            int notificationId = item.getInt("id");
+            Intent notificationIntent = new Intent(context, NotificationReceiver.class);
+            notificationIntent.putExtra("id", notificationId);
+            PendingIntent pendingIntent = PendingIntent.getBroadcast(context, notificationId, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+            AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+            alarmManager.cancel(pendingIntent);
+            notificationManager.cancel(notificationId);
+        }
+    }
+
+    private static NotificationCompat.Builder createNotificationConfigBuider(Context context, Map<String, String> configNotification, PendingIntent pendingIntent) {
+        String language = AppPreferenceManager.getInstance(context).getLanguage();
+        String subText;
+        String message;
+        String title;
+        String bigText;
+        if(language.equals("vi")) {
+            subText = configNotification.get("subText");
+            message = configNotification.get("message");
+            bigText = configNotification.get("bigText");
+            title = configNotification.get("title");
+        } else {
+            subText = configNotification.get("subTextEn");
+            message = configNotification.get("messageEn");
+            bigText = configNotification.get("bigTextEn");
+            title = configNotification.get("titleEn");
+        }
+
+        if(title == null || title.equals("")) {
+            return null ;
+        }
+
+        if(bigText == null || bigText.equals("")) {
+            return null;
+        }
+
+        NotificationCompat.Builder buider = new NotificationCompat.Builder(context, AppConstants.NOTIFICATION_CHANNEL_ID)
+                .setPriority(PRIORITY_MIN)
+                .setSmallIcon(R.mipmap.icon_bluezone_service)
+                .setSubText(subText) // Sub text
+                .setContentTitle(title) // title
+                .setContentText(message) // bigText
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(bigText))
+                .setContentIntent(pendingIntent);
+        return buider;
+    }
+
+    private static void displayScanNotification(Context context) {
+        String language = AppPreferenceManager.getInstance(context).getLanguage();
+        Map<String, String> scanNotification = AppPreferenceManager.getInstance(context).getScanNotification();
+
+        Intent notificationIntent = new Intent(context, AppUtils.getMainActivityClass(context));
+        PendingIntent pendingIntent = PendingIntent.getActivity(context,
+                AppConstants.NOTIFICATION_CHANNEL_ID_CODE, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        NotificationCompat.Builder scanNotificationBuider = createNotificationConfigBuider(context, scanNotification, pendingIntent);
+        if(scanNotificationBuider == null) {
+            return;
+        }
+
+        String buttonText = language.equals("vi") ? scanNotification.get("buttonText") : scanNotification.get("buttonTextEn");
+        if(buttonText != null && !buttonText.equals("")) {
+            scanNotificationBuider.addAction(R.mipmap.icon_bluezone_service, buttonText, pendingIntent);
+        }
+
+        Notification notificationOpen = scanNotificationBuider.build();
+        notificationOpen.flags |= Notification.FLAG_AUTO_CANCEL;
+        notificationManager.notify(AppConstants.NOTIFICATION_SCAN_ID, notificationOpen);
+    }
+
+    private static void displayEnableBluetoothNotification(Context context) {
+        String language = AppPreferenceManager.getInstance(context).getLanguage();
+        Map<String, String> scanNotification = AppPreferenceManager.getInstance(context).getEnableBluetoothNotification();
+
+        Intent notificationIntent = new Intent(context, AppUtils.getMainActivityClass(context));
+        notificationIntent.setAction("enableBluetooth");
+        PendingIntent pendingIntent = PendingIntent.getActivity(context,
+                AppConstants.NOTIFICATION_CHANNEL_ID_CODE, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        NotificationCompat.Builder enableBluetoothNotificationBuider = createNotificationConfigBuider(context, scanNotification, pendingIntent);
+
+        if(enableBluetoothNotificationBuider == null) {
+            return;
+        }
+
+        String buttonText = language.equals("vi") ? scanNotification.get("buttonText") : scanNotification.get("buttonTextEn");
+        if(buttonText != null && !buttonText.equals("")) {
+            Intent actionIntent = new Intent(context, NotificationReceiver.class);
+            actionIntent.setAction("enableBluetooth");
+            actionIntent.putExtra("notificationId", AppConstants.NOTIFICATION_ENABLE_BLUETOOTH_ID);
+            PendingIntent pendingIntent1 =
+                    PendingIntent.getBroadcast(context, 0, actionIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+            enableBluetoothNotificationBuider.addAction(R.mipmap.icon_bluezone_service, buttonText, pendingIntent1);
+        }
+
+        Notification notificationOpen = enableBluetoothNotificationBuider.build();
+        notificationOpen.flags = Notification.FLAG_AUTO_CANCEL;
+        notificationManager.notify(AppConstants.NOTIFICATION_ENABLE_BLUETOOTH_ID, notificationOpen);
+    }
+
+    public static void changeServiceNotification(int icon, String title, String content) {
+        if(notificationBuider != null && notificationManager != null) {
+            notificationBuider.setSmallIcon(icon);
+            notificationBuider.setContentTitle(title);
+            notificationBuider.setStyle(new NotificationCompat.BigTextStyle().bigText(content));
+            notificationBuider.setContentText(content);
+            notificationManager.notify(AppConstants.NOTIFICATION_SERVICE_BLUE_ZONE_ID, notificationBuider.build());
+        }
+    }
+
+    public static void scanStatusInactive(Context context) throws JSONException {
+        createScheduleNotification(context, "schedule", AppPreferenceManager.getInstance(context).getScheduleScanNotification());
+
+        // Thay đổi notification service sang thông báo lỗi
+        Map<String, String> scanNotification = AppPreferenceManager.getInstance(context).getScanNotification();
+        String language = AppPreferenceManager.getInstance(context).getLanguage();
+        String title = language.equals("vi") ? scanNotification.get("title") : scanNotification.get("titleEn");
+        String bigText = language.equals("vi") ? scanNotification.get("bigText") : scanNotification.get("bigTextEn");
+        if(title != null && !title.equals("") && bigText != null && !bigText.equals("")) {
+            changeServiceNotification(R.mipmap.icon_error, title, bigText);
+        }
+    }
+
+    public static void scanStatusActive(Context context) throws JSONException {
+        clearScheduleNotification(context, AppPreferenceManager.getInstance(context).getScheduleScanNotification());
+        notificationManager.cancel(AppConstants.NOTIFICATION_SCAN_ID);
+
+        // Reset notification về trạng thái ban đầu
+        String language = AppPreferenceManager.getInstance(context).getLanguage();
+        changeLanguageNotification(context, language);
+    }
+
+    public static void bluetoothChange(Context context, boolean enable) {
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        Intent intent = new Intent(context, NotificationReceiver.class);
+        intent.setAction("enableBluetooth");
+        if(!enable) {
+            displayEnableBluetoothNotification(context);
+            // Automatic enable bluetooth after a period of time
+
+            long timeAutoEnableBLuetooth = AppPreferenceManager.getInstance(context).getTimeAutoEnableBluetooth();
+            PendingIntent pending = PendingIntent.getBroadcast(context, AppConstants.ALARM_AUTOMATIC_ENABLE_BLUETOOTH, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + timeAutoEnableBLuetooth, pending);
+        } else {
+            PendingIntent pendingIntent = PendingIntent.getBroadcast(context, AppConstants.ALARM_AUTOMATIC_ENABLE_BLUETOOTH, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+            alarmManager.cancel(pendingIntent);
+            notificationManager.cancel(AppConstants.NOTIFICATION_ENABLE_BLUETOOTH_ID);
+        }
+    }
+
+    public static void scheduleScanNotificationChangeConfiguration(Context context, Map<String, String> oldConfig, ReadableMap newConfig) throws JSONException {
+        String strItemRepeatOld = oldConfig.get("itemRepeat");
+        String strItemRepeatNew = newConfig.hasKey("itemRepeat") ? newConfig.getArray("itemRepeat").toString() : "";
+
+        JSONArray itemRepeatOld = null;
+        try {
+            itemRepeatOld = new JSONArray(strItemRepeatOld);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        JSONArray itemRepeatNew = null;
+        try {
+            itemRepeatNew = new JSONArray(strItemRepeatNew);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+
+        for (int i = 0; i < itemRepeatOld.length(); i++) {
+            int oldNotificationId = itemRepeatOld.getJSONObject(i).getInt("id");
+            boolean delete = true;
+            for (int j = 0; j < itemRepeatNew.length(); j++) {
+                if(itemRepeatNew.getJSONObject(i).getInt("id") == oldNotificationId) {
+                    delete = false;
+                    break;
+                }
+            }
+
+            if(delete) {
+                // Xóa notification
+                AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+                Intent notificationIntent = new Intent(context, NotificationReceiver.class);
+                notificationIntent.putExtra("id", oldNotificationId);
+                PendingIntent pendingIntent = PendingIntent.getBroadcast(context, oldNotificationId, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+                alarmManager.cancel(pendingIntent);
+                notificationManager.cancel(oldNotificationId);
+            }
+        }
+
+        if(AppUtils.isBluetoothEnable() && AppUtils.isLocationEnable(context) && AppUtils.isPermissonLocation(context)
+        ) {
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+        long timeStartToday = getTimeStartToday();
+        for (int i = 0; i < itemRepeatNew.length(); i++) {
+            int newNotificationId = itemRepeatNew.getJSONObject(i).getInt("id");
+            boolean add = true;
+            for (int j = 0; j < itemRepeatOld.length(); j++) {
+                if(itemRepeatNew.getJSONObject(i).getInt("id") == newNotificationId) {
+                    add = false;
+                }
+            }
+            if(add) {
+                JSONObject item = itemRepeatNew.getJSONObject(i);
+                if(!item.has("id")) {
+                    break;
+                }
+                int notificationId = item.getInt("id");
+                int dayStartTime = item.getInt("dayStartTime");
+                int repeatTime = item.getInt("repeatTime");
+                long iTime = timeStartToday + dayStartTime;
+                if (iTime < now) {
+                    iTime += MILISECOND_OF_DAY;
+                }
+                Intent intent = new Intent(context, NotificationReceiver.class);
+                intent.putExtra("id", notificationId);
+                intent.putExtra("type", "schedule");
+                PendingIntent pending = PendingIntent.getBroadcast(context, notificationId, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+                // Thêm schedule notification
+                AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+                alarmManager.setInexactRepeating(AlarmManager.RTC_WAKEUP, iTime, repeatTime, pending);
+            }
+        }
+    }
+
+    public static void scanNotificationChangeConfiguration(Map<String, String> oldConfig, ReadableMap newConfig) {
+        // ...
+    }
+
+    public static void enableBluetoothNotificationChangeConfiguration(Map<String, String> oldConfig, ReadableMap newConfig) {
+        // ...
+    }
 }

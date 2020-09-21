@@ -1,5 +1,9 @@
 package com.scan;
 
+import android.content.Intent;
+import android.content.pm.PackageInfo;
+import android.os.Build;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -18,6 +22,9 @@ import com.scan.preference.AppPreferenceManager;
 
 import org.json.JSONException;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class TraceCovidModule extends ReactContextBaseJavaModule {
     private static ReactApplicationContext reactContext;
     private Callback onScanResult;
@@ -33,6 +40,39 @@ public class TraceCovidModule extends ReactContextBaseJavaModule {
         reactContext = context;
         ServiceTraceCovid.reactContext = context;
         this.manager = new TraceCovidModuleManager(context, this);
+    }
+
+    private PackageInfo getPackageInfo() throws Exception {
+        return getReactApplicationContext().getPackageManager().getPackageInfo(getReactApplicationContext().getPackageName(), 0);
+    }
+
+    @Override
+    public Map<String, Object> getConstants() {
+        String appVersion, buildNumber, appName;
+
+        try {
+            appVersion = getPackageInfo().versionName;
+            buildNumber = Integer.toString(getPackageInfo().versionCode);
+            appName = getReactApplicationContext().getApplicationInfo().loadLabel(getReactApplicationContext().getPackageManager()).toString();
+        } catch (Exception e) {
+            appVersion = "unknown";
+            buildNumber = "unknown";
+            appName = "unknown";
+        }
+
+        final Map<String, Object> constants = new HashMap<>();
+
+        constants.put("deviceId", Build.BOARD);
+        constants.put("bundleId", getReactApplicationContext().getPackageName());
+        constants.put("systemName", "Android");
+        constants.put("systemVersion", Build.VERSION.RELEASE);
+        constants.put("appVersion", appVersion);
+        constants.put("buildNumber", buildNumber);
+        constants.put("appName", appName);
+        constants.put("brand", Build.BRAND);
+        constants.put("model", Build.MODEL);
+
+        return constants;
     }
 
     @ReactMethod
@@ -123,6 +163,22 @@ public class TraceCovidModule extends ReactContextBaseJavaModule {
     public void setContentNotify(String title, String content) {
         this.manager.setContentNotify(title, content);
     }
+
+    @ReactMethod
+    public void openSettings(String screenName) {
+        Intent settingsIntent = new Intent(screenName);
+        settingsIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+        if (settingsIntent.resolveActivity(this.reactContext.getPackageManager()) != null) {
+            this.reactContext.startActivity(settingsIntent);
+        }
+    }
+
+    @ReactMethod(isBlockingSynchronousMethod = true)
+    public float getFontScaleSync() { return getReactApplicationContext().getResources().getConfiguration().fontScale; }
+
+    @ReactMethod
+    public void getFontScale(Promise p) { p.resolve(getFontScaleSync()); }
 
     public void emitEvent(String eventName, @Nullable Object data) {
         sendEvent(reactContext, eventName, data);

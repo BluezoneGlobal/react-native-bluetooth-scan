@@ -1,6 +1,8 @@
 package com.scan;
 
 import android.Manifest;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -27,6 +29,7 @@ import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.BatteryManager;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.SystemClock;
@@ -38,16 +41,19 @@ import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 
 import com.facebook.react.bridge.ReactApplicationContext;
+import com.google.firebase.analytics.FirebaseAnalytics;
 import com.scan.bluezoneid.BluezoneIdGenerator;
 import com.scan.bluezoneid.BluezoneIdUtils;
 import com.scan.database.AppDatabaseHelper;
 import com.scan.database.CacheDatabaseHelper;
 import com.scan.model.ScanConfig;
+import com.scan.notification.NotificationReceiver;
 import com.scan.preference.AppPreferenceManager;
 
 import org.json.JSONException;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -134,6 +140,11 @@ public class ServiceTraceCovid extends Service {
     private long mLastTimeScanCallBack;
     private boolean mIsReport = false;
 
+    private boolean bluetoothEnable = false;
+    private boolean locationEnable = false;
+    private boolean permissonLocationEnable = false;
+    private boolean scanStatusError = false;
+
     final Handler handler = new Handler();
 
     @Nullable
@@ -145,6 +156,14 @@ public class ServiceTraceCovid extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+
+        if(!AppPreferenceManager.getInstance(getApplicationContext()).getClearScheduleNotification()) {
+            Intent notificationIntent = new Intent(getApplicationContext(), NotificationReceiver.class);
+            PendingIntent pendingIntent = PendingIntent.getBroadcast(getApplicationContext(), 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+            AlarmManager alarmManager = (AlarmManager) getApplicationContext().getSystemService(Context.ALARM_SERVICE);
+            alarmManager.cancel(pendingIntent);
+            AppPreferenceManager.getInstance(getApplicationContext()).setClearScheduleNotification(true);
+        }
 
         // Log
         writeLog("Start ServiceTraceCovid");
@@ -158,6 +177,11 @@ public class ServiceTraceCovid extends Service {
         // Init status
         initStatus();
 
+        bluetoothEnable = AppUtils.isBluetoothEnable ();
+        locationEnable = AppUtils.isLocationEnable(getApplicationContext());
+        permissonLocationEnable = AppUtils.isPermissonLocation(getApplicationContext());
+        scanStatusError = !bluetoothEnable || !locationEnable || !permissonLocationEnable;
+
         // Array
         mScanResultList = new ArrayList<>();
         mMacConnectList = new ArrayList<>();
@@ -168,29 +192,38 @@ public class ServiceTraceCovid extends Service {
                 // use a handler to run a toast that shows the current timestamp
                 handler.post(new Runnable() {
                     public void run() {
-
-                        if (mModeScan != MODE_SCAN_FULL) {
-                            if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                                // Create notify schuled
-                                try {
-                                    AppUtils.createNotifyRequestPermisson(getApplicationContext());
-                                } catch (JSONException e) {
-                                    e.printStackTrace();
-                                }
-                            } else {
-                                // Permission granted
-                                try {
-                                    AppUtils.clearNotifyRequestPermisson(getApplicationContext());
-                                } catch (JSONException e) {
-                                    e.printStackTrace();
-                                }
-                            }
+                        boolean st = AppUtils.isPermissonLocation(getApplicationContext());
+                        if(st == permissonLocationEnable) {
+                            return;
                         }
+
+                        permissonLocationEnable = st;
+                        checkScanStatus();
                     }
                 });
             }
         };
         timer.schedule(timerTask, 10000, AppPreferenceManager.getInstance(getApplicationContext()).getConfigCheckIntervalRequestPermission(AppConstants.Config.DEFAULT_INTERVAL_CHECK_PERMISSON)); //
+
+        // CongTM: Lap lich gui thong ke len analytic, cần chọn phương án sau 1 giờ lại bắn event hay là khi bật tặt bluetooth mới bắn event
+        Timer timerAnalytics = new Timer();
+
+        TimerTask timerAnalyticTask = new TimerTask() {
+            public void run() {
+                // use a handler to run a toast that shows the current timestamp
+                handler.post(new Runnable() {
+                    public void run() {
+                        if(mBluetoothAdapter.isEnabled()) {
+                            sendAnalytics("ON");
+                        } else {
+                            sendAnalytics("OFF");
+                        }
+                    }
+                });
+            }
+        };
+
+        timerAnalytics.schedule(timerAnalyticTask, 10000, AppConstants.Config.DEFAULT_SEND_ANALYTICS);
     }
 
     /**
@@ -492,7 +525,11 @@ public class ServiceTraceCovid extends Service {
                     initAlarmTimer(TYPE_SCHEDULER_SCAN_FULL, TYPE_SCHEDULER_SCAN_FULL, AppConstants.Config.DEFAULT_FULL_INTERVAL);
                     break;
                 case TYPE_SCHEDULER_SCAN_FULL_STOP:
-                    initAlarmTimer(TYPE_SCHEDULER_SCAN_FULL_STOP, TYPE_SCHEDULER_SCAN_FULL_STOP, AppConstants.Config.DEFAULT_FULL_DURATION);
+                    if (mIsReport) {
+                        initAlarmTimer(TYPE_SCHEDULER_SCAN_FULL_STOP, TYPE_SCHEDULER_SCAN_FULL_STOP, AppConstants.Config.DEFAULT_FULL_REPORT_DELAY_DURATION);
+                    } else {
+                        initAlarmTimer(TYPE_SCHEDULER_SCAN_FULL_STOP, TYPE_SCHEDULER_SCAN_FULL_STOP, AppConstants.Config.DEFAULT_FULL_DURATION);
+                    }
                     break;
                 case TYPE_SCHEDULER_ENABLE_BLUETOOTH:
                     initAlarmTimer(TYPE_SCHEDULER_ENABLE_BLUETOOTH, TYPE_SCHEDULER_ENABLE_BLUETOOTH,
@@ -1037,6 +1074,23 @@ public class ServiceTraceCovid extends Service {
         }
     }
 
+    /**
+     * CongTM: Send Analytic
+     */
+    private void sendAnalytics(String bleStatus) {
+        try {
+            FirebaseAnalytics firebaseAnalytics = FirebaseAnalytics.getInstance(this);
+            Calendar now = Calendar.getInstance();
+            int currentHour = now.get(Calendar.HOUR_OF_DAY);
+            String eventName = "Bluetooth_" + bleStatus + "_" + currentHour + "_hour";
+            Bundle params = new Bundle();
+            params.putString("value", "bluetoothStatus");
+            firebaseAnalytics.logEvent(eventName, params);
+        } catch (Exception e) {
+            // Log error
+        }
+    }
+
     // Class
     class BluetoothChangedReceiver extends BroadcastReceiver {
         @Override
@@ -1060,16 +1114,12 @@ public class ServiceTraceCovid extends Service {
 
                                 // Timer enable bluetooth => Not auto enable bluetooth
                                 // callAlarmTimer(TYPE_SCHEDULER_ENABLE_BLUETOOTH);
+                                bluetoothEnable = false;
+                                AppUtils.bluetoothChange(getApplicationContext(), bluetoothEnable);
 
+                                // CongTM: send Analytics
+                                sendAnalytics("OFF");
                                 // App luncher
-                                if(mModeScan != MODE_SCAN_FULL) {
-                                    // Create notify bluetooth
-                                    try {
-                                        AppUtils.createNotifyRequestBluetooth(getApplicationContext());
-                                    } catch (JSONException e) {
-                                        e.printStackTrace();
-                                    }
-                                }
                                 break;
                             case BluetoothAdapter.STATE_TURNING_OFF:
                                 // Log
@@ -1084,21 +1134,22 @@ public class ServiceTraceCovid extends Service {
                             case BluetoothAdapter.STATE_ON:
                                 // Log
                                 writeLog("Bluetooth : ON");
-                                try {
-                                    AppUtils.clearNotifyRequestBluetooth(getApplicationContext());
-                                } catch (JSONException e) {
-                                    e.printStackTrace();
-                                }
+                                bluetoothEnable = true;
+                                AppUtils.bluetoothChange(getApplicationContext(), bluetoothEnable);
 
                                 // init bluetooth
                                 initBluetooth();
 
                                 // Start service
                                 startAll();
+
+                                // CongTM: send Analytics
+                                sendAnalytics("ON");
                                 break;
 //                            case BluetoothAdapter.STATE_TURNING_ON:
 //                                break;
                         }
+                        checkScanStatus();
                     }
                 }
             }
@@ -1191,6 +1242,28 @@ public class ServiceTraceCovid extends Service {
         }
     }
 
+    private void checkScanStatus() {
+        boolean st = !bluetoothEnable || !locationEnable || !permissonLocationEnable;
+        if(st == scanStatusError) {
+            return;
+        }
+
+        scanStatusError = st;
+        if(scanStatusError) {
+            try {
+                AppUtils.scanStatusInactive(getApplicationContext());
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        } else {
+            try {
+                AppUtils.scanStatusActive(getApplicationContext());
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     // Class
     class BatteryReceiver extends BroadcastReceiver {
         @Override
@@ -1227,7 +1300,7 @@ public class ServiceTraceCovid extends Service {
 
                 return locationMode != Settings.Secure.LOCATION_MODE_OFF;
 
-            }else{
+            } else{
                 locationProviders = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.LOCATION_PROVIDERS_ALLOWED);
                 return !TextUtils.isEmpty(locationProviders);
             }
@@ -1238,24 +1311,12 @@ public class ServiceTraceCovid extends Service {
             if (intent != null) {
                 String action = intent.getAction();
                 if (action.equals(LocationManager.MODE_CHANGED_ACTION)) {
-                    LocationManager locationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
-                    boolean status = this.isLocationEnabled(getApplicationContext());
-                    if (status) {
-                        if(mModeScan != MODE_SCAN_FULL) {
-                            // Create notify bluetooth
-                            try {
-                                AppUtils.createNotifyRequestLocation(getApplicationContext());
-                            } catch (JSONException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    } else {
-                        try {
-                            AppUtils.clearNotifyRequestLocation(getApplicationContext());
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
+                    boolean status = AppUtils.isLocationEnable(getApplicationContext());
+                    if(status == locationEnable) {
+                        return;
                     }
+                    locationEnable = AppUtils.isLocationEnable(getApplicationContext());
+                    checkScanStatus();
                 }
             }
         }

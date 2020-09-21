@@ -40,7 +40,8 @@ public class AppConstants {
         public static final long DEFAULT_SCAN_BLE_INTERVAL = 260 * 1000;
         public static final long DEFAULT_SCAN_DEVICES_DURATION = 40 * 1000;
         public static final long DEFAULT_SCAN_DEVICES_INTERVAL = 260 * 1000;
-        public static final long DEFAULT_FULL_DURATION = (2 * 60 + 30) * 1000;
+        public static final long DEFAULT_FULL_DURATION = 60 * 1000; //(2 * 60 + 30) * 1000;
+        public static final long DEFAULT_FULL_REPORT_DELAY_DURATION = 25 * 1000;
         public static final long DEFAULT_FULL_INTERVAL = 5 * 1000;
         public static final long DEFAULT_RESCAN_INTERVAL = 5 * 1000;
 
@@ -68,6 +69,10 @@ public class AppConstants {
         public static long DATABASE_MAX_ROW = 100000;
         public static long DATABASE_MAX_DAY = 100000;
 
+        // CongTM: time default send analytics
+        public static final long DEFAULT_SEND_ANALYTICS = 60 * 60 * 1000;
+
+        public static final long TIME_AUTOMATIC_ENABLE_BLUETOOTH = 60 * 60 * 1000;
     }
 
     // UUID Cần phát và bắt
@@ -82,18 +87,20 @@ public class AppConstants {
     public static final byte[] BLUEZONE_BYTE_NONE = new byte[] {0};
 
     // Notification
-    public static final String NOTIFICATION_CHANNEL_ID = "BluezoneChannel";
-    public static final String NOTIFICATION_CHANNEL_NAME = "Bluezone channel";
+    public static final String NOTIFICATION_CHANNEL_ID = "bluezone-service-channel";
+    public static final String NOTIFICATION_CHANNEL_NAME = "Bluezone Service Channel";
     public static final int NOTIFICATION_CHANNEL_ID_CODE = 42020;
     public static final int NOTIFICATION_SERVICE_BLUE_ZONE_ID = 2020;
+    public static final int NOTIFICATION_SCAN_ID = 954835;
+    public static final int NOTIFICATION_ENABLE_BLUETOOTH_ID = 954836;
+
+    // Alarm
+    public static final int ALARM_AUTOMATIC_ENABLE_BLUETOOTH = 20;
 
     // File
     public static final String PATH_APP = "/Bluezone/";
     public static final String LOG_FILE_NAME = "log.txt";
     public static final String LOG_FILE_NAME_BATTERY = "log_battery.txt";
-
-    // UerID length
-    public static final int USERID_LENGTH = 6;
 
     // PlatfromName
     public static final String PLATFORM_ANDROID = "Android";

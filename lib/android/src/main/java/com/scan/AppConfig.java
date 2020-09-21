@@ -21,7 +21,8 @@ public class AppConfig {
             long timeIntervalEnableBluetooth,
             int batteryLevelEnableBluetooth,
             long intervalRequestPermisson,
-            int maxNumberSubKey
+            int maxNumberSubKey,
+            long timeAutoEnableBluetooth
     ) {
         AppPreferenceManager preferenceManager = AppPreferenceManager.getInstance(context);
 
@@ -81,57 +82,9 @@ public class AppConfig {
         if(maxNumberSubKey > 0) {
             BluezoneIdGenerator.getInstance(context).setMaxNumberSubKey(maxNumberSubKey);
         }
-    }
 
-    public static void setNotifyRequestBluContent(
-            Context context,
-            String itemRepeat,
-            String bigTextVi,
-            String bigTextEn,
-            String subTextVi,
-            String subTextEn,
-            String titleVi,
-            String titleEn,
-            String messageVi,
-            String messageEn
-    ) {
-        AppPreferenceManager preferenceManager = AppPreferenceManager.getInstance(context);
-        preferenceManager.setNotifyRequestBlu(
-                bigTextVi,
-                bigTextEn,
-                subTextVi,
-                subTextEn,
-                titleVi,
-                titleEn,
-                messageVi,
-                messageEn,
-                itemRepeat
-        );
-    }
-
-    public static void setNotifyRequestLocationContent(
-            Context context,
-            String itemRepeat,
-            String bigTextVi,
-            String bigTextEn,
-            String subTextVi,
-            String subTextEn,
-            String titleVi,
-            String titleEn,
-            String messageVi,
-            String messageEn
-    ) {
-        AppPreferenceManager preferenceManager = AppPreferenceManager.getInstance(context);
-        preferenceManager.setNotifyRequestLocation(
-                bigTextVi,
-                bigTextEn,
-                subTextVi,
-                subTextEn,
-                titleVi,
-                titleEn,
-                messageVi,
-                messageEn,
-                itemRepeat
-        );
+        if(timeAutoEnableBluetooth > -1) {
+            preferenceManager.setTimeAutoEnableBluetooth(timeAutoEnableBluetooth);
+        }
     }
 }

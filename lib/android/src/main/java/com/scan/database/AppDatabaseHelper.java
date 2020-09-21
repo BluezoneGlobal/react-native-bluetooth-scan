@@ -376,6 +376,31 @@ public class AppDatabaseHelper extends SQLiteOpenHelper {
         return cursor;
     }
 
+    /**
+     * Get all data: NhatPA
+     * @return
+     */
+    public Cursor getCursorDataConvert(long timeStart) {
+        // ret
+        Cursor cursor = null;
+
+        // open
+        openDatabase();
+
+        cursor = mDatabase.query(
+                TABLE_NAME,
+                new String[]{
+                        "hex(" + COLUMN_BLID + ") AS " + COLUMN_BLID ,
+                        "hex(" + COLUMN_BLID_CONTACT + ") AS " + COLUMN_BLID_CONTACT ,
+                        COLUMN_RSSI,
+                        COLUMN_TIME
+                },
+                COLUMN_TIME + " >= ? ",
+                new String[]{String.valueOf(timeStart)},
+                null, null, null, null);
+        return cursor;
+    }
+
     @Override
     protected void finalize() throws Throwable {
         if (Holder.mInstance != null) {
