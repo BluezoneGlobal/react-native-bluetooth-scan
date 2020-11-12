@@ -9,6 +9,7 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableMap;
 import com.scan.apis.AsyncStorageApi;
+import com.scan.notification.NotificationUtils;
 import com.scan.preference.AppPreferenceManager;
 
 import org.json.JSONException;
@@ -16,6 +17,7 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.util.Map;
+import java.util.Objects;
 
 public class TraceCovidModuleManager {
     public ReactApplicationContext reactContext;
@@ -96,6 +98,19 @@ public class TraceCovidModuleManager {
         }
     }
 
+    public static String[] getInfoNotificationMap(ReadableMap map, String[] keys) {
+        String[] result = new String[keys.length];
+        for(int i = 0; i < keys.length; i++) {
+            String key = keys[i];
+            if(map.hasKey(key)) {
+                result[i] = map.getType(key).name().equals("Array") ? Objects.requireNonNull(map.getArray(key)).toString() : map.getString(key);
+            } else {
+                result[i] = null;
+            }
+        }
+        return result;
+    }
+
     public void setConfig (ReadableMap configs) {
         int timeScanBleRun = configs.hasKey("ScanBleRun") ? configs.getInt("ScanBleRun") : -1;
         int timeScanBleSleep = configs.hasKey("ScanBleSleep") ? configs.getInt("ScanBleSleep") : -1;
@@ -138,59 +153,101 @@ public class TraceCovidModuleManager {
         Map<String, String> oldScheduleScanNotificationConfig = preferenceManager.getScheduleScanNotification();
         Map<String, String> oldEnableBluetoothNotificationConfig =  preferenceManager.getEnableBluetoothNotification();
 
+        String[] keys = {"title", "titleEn", "bigText", "bigTextEn", "message", "messageEn", "subText", "subTextEn", "buttonText", "buttonTextEn", "itemRepeat"};
+
         ReadableMap scheduleScanNotification = configs.hasKey("AndroidScheduleScanNotification") ? configs.getMap("AndroidScheduleScanNotification") : null;
         if(scheduleScanNotification != null) {
-            String itemRepeat = scheduleScanNotification.hasKey("itemRepeat") ? scheduleScanNotification.getArray("itemRepeat").toString() : null;
-            String bigTextVi = scheduleScanNotification.hasKey("bigText") ? scheduleScanNotification.getString("bigText") : null;
-            String bigTextEn = scheduleScanNotification.hasKey("bigTextEn") ? scheduleScanNotification.getString("bigTextEn") : null;
-            String subTextVi = scheduleScanNotification.hasKey("subText") ? scheduleScanNotification.getString("subText") : null;
-            String subTextEn = scheduleScanNotification.hasKey("subTextEn") ? scheduleScanNotification.getString("subTextEn") : null;
-            String titleVi = scheduleScanNotification.hasKey("title") ? scheduleScanNotification.getString("title") : null;
-            String titleEn = scheduleScanNotification.hasKey("titleEn") ? scheduleScanNotification.getString("titleEn") : null;
-            String messageVi = scheduleScanNotification.hasKey("message") ? scheduleScanNotification.getString("message") : null;
-            String messageEn = scheduleScanNotification.hasKey("messageEn") ? scheduleScanNotification.getString("messageEn") : null;
-            String buttonText = scheduleScanNotification.hasKey("buttonText") ? scheduleScanNotification.getString("buttonText") : null;
-            String buttonTextEn = scheduleScanNotification.hasKey("buttonTextEn") ? scheduleScanNotification.getString("buttonTextEn") : null;
-            preferenceManager.setScheduleScanNotification(bigTextVi, bigTextEn, subTextVi, subTextEn, titleVi, titleEn, messageVi, messageEn, itemRepeat, buttonText, buttonTextEn);
+            String[] scheduleScanInfo = getInfoNotificationMap(scheduleScanNotification, keys);
+            preferenceManager.setScheduleScanNotification(
+                    scheduleScanInfo[0],
+                    scheduleScanInfo[1],
+                    scheduleScanInfo[2],
+                    scheduleScanInfo[3],
+                    scheduleScanInfo[4],
+                    scheduleScanInfo[5],
+                    scheduleScanInfo[6],
+                    scheduleScanInfo[7],
+                    scheduleScanInfo[8],
+                    scheduleScanInfo[9],
+                    scheduleScanInfo[10]
+            );
         }
 
         ReadableMap scanNotification = configs.hasKey("AndroidScanNotification") ? configs.getMap("AndroidScanNotification") : null;
         if(scanNotification != null) {
-            String bigTextVi = scanNotification.hasKey("bigText") ? scanNotification.getString("bigText") : null;
-            String bigTextEn = scanNotification.hasKey("bigTextEn") ? scanNotification.getString("bigTextEn") : null;
-            String subTextVi = scanNotification.hasKey("subText") ? scanNotification.getString("subText") : null;
-            String subTextEn = scanNotification.hasKey("subTextEn") ? scanNotification.getString("subTextEn") : null;
-            String titleVi = scanNotification.hasKey("title") ? scanNotification.getString("title") : null;
-            String titleEn = scanNotification.hasKey("titleEn") ? scanNotification.getString("titleEn") : null;
-            String messageVi = scanNotification.hasKey("message") ? scanNotification.getString("message") : null;
-            String messageEn = scanNotification.hasKey("messageEn") ? scanNotification.getString("messageEn") : null;
-            String buttonText = scanNotification.hasKey("buttonText") ? scanNotification.getString("buttonText") : null;
-            String buttonTextEn = scanNotification.hasKey("buttonTextEn") ? scanNotification.getString("buttonTextEn") : null;
-            preferenceManager.setScanNotification(bigTextVi, bigTextEn, subTextVi, subTextEn, titleVi, titleEn, messageVi, messageEn, buttonText, buttonTextEn);
+            String[] scanNotificationInfo = getInfoNotificationMap(scanNotification, keys);
+            preferenceManager.setScanNotification(
+                    scanNotificationInfo[0],
+                    scanNotificationInfo[1],
+                    scanNotificationInfo[2],
+                    scanNotificationInfo[3],
+                    scanNotificationInfo[4],
+                    scanNotificationInfo[5],
+                    scanNotificationInfo[6],
+                    scanNotificationInfo[7],
+                    scanNotificationInfo[8],
+                    scanNotificationInfo[9]
+            );
+        }
+
+        ReadableMap locationPermissonNotificationVersion2 = configs.hasKey("AndroidLocationPermissonVersion2") ? configs.getMap("AndroidLocationPermissonVersion2") : null;
+        if(locationPermissonNotificationVersion2 != null) {
+            String[] locationPermissonInfo = getInfoNotificationMap(locationPermissonNotificationVersion2, keys);
+            preferenceManager.setLocationPermissonNotificationV2(
+                    locationPermissonInfo[0],
+                    locationPermissonInfo[1],
+                    locationPermissonInfo[2],
+                    locationPermissonInfo[3],
+                    locationPermissonInfo[4],
+                    locationPermissonInfo[5],
+                    locationPermissonInfo[6],
+                    locationPermissonInfo[7],
+                    locationPermissonInfo[8],
+                    locationPermissonInfo[9]
+            );
+        }
+
+        ReadableMap scanNotificationVersion2 = configs.hasKey("AndroidScanNotificationVersion2") ? configs.getMap("AndroidScanNotificationVersion2") : null;
+        if(scanNotificationVersion2 != null) {
+            String[] scanVersion2Info = getInfoNotificationMap(scanNotificationVersion2, keys);
+            preferenceManager.setScanNotificationV2(
+                    scanVersion2Info[0],
+                    scanVersion2Info[1],
+                    scanVersion2Info[2],
+                    scanVersion2Info[3],
+                    scanVersion2Info[4],
+                    scanVersion2Info[5],
+                    scanVersion2Info[6],
+                    scanVersion2Info[7],
+                    scanVersion2Info[8],
+                    scanVersion2Info[9]
+            );
         }
 
         ReadableMap enableBluetoothNotification = configs.hasKey("AndroidEnableBluetoothNotification") ? configs.getMap("AndroidEnableBluetoothNotification") : null;
         if(enableBluetoothNotification != null) {
-            String bigTextVi = enableBluetoothNotification.hasKey("bigText") ? enableBluetoothNotification.getString("bigText") : null;
-            String bigTextEn = enableBluetoothNotification.hasKey("bigTextEn") ? enableBluetoothNotification.getString("bigTextEn") : null;
-            String subTextVi = enableBluetoothNotification.hasKey("subText") ? enableBluetoothNotification.getString("subText") : null;
-            String subTextEn = enableBluetoothNotification.hasKey("subTextEn") ? enableBluetoothNotification.getString("subTextEn") : null;
-            String titleVi = enableBluetoothNotification.hasKey("title") ? enableBluetoothNotification.getString("title") : null;
-            String titleEn = enableBluetoothNotification.hasKey("titleEn") ? enableBluetoothNotification.getString("titleEn") : null;
-            String messageVi = enableBluetoothNotification.hasKey("message") ? enableBluetoothNotification.getString("message") : null;
-            String messageEn = enableBluetoothNotification.hasKey("messageEn") ? enableBluetoothNotification.getString("messageEn") : null;
-            String buttonText = enableBluetoothNotification.hasKey("buttonText") ? enableBluetoothNotification.getString("buttonText") : null;
-            String buttonTextEn = enableBluetoothNotification.hasKey("buttonTextEn") ? enableBluetoothNotification.getString("buttonTextEn") : null;
-            preferenceManager.setEnableBluetoothNotification(bigTextVi, bigTextEn, subTextVi, subTextEn, titleVi, titleEn, messageVi, messageEn, buttonText, buttonTextEn);
+            String[] enableBluetoothInfo = getInfoNotificationMap(enableBluetoothNotification, keys);
+            preferenceManager.setEnableBluetoothNotification(
+                    enableBluetoothInfo[0],
+                    enableBluetoothInfo[1],
+                    enableBluetoothInfo[2],
+                    enableBluetoothInfo[3],
+                    enableBluetoothInfo[4],
+                    enableBluetoothInfo[5],
+                    enableBluetoothInfo[6],
+                    enableBluetoothInfo[7],
+                    enableBluetoothInfo[8],
+                    enableBluetoothInfo[9]
+            );
         }
 
-//        AppUtils.scanNotificationChangeConfiguration(oldScanNotificationConfig, scanNotification);
+//        NotificationUtils.scanNotificationChangeConfiguration(oldScanNotificationConfig, scanNotification);
         try {
-            AppUtils.scheduleScanNotificationChangeConfiguration(reactContext, oldScheduleScanNotificationConfig, scheduleScanNotification);
+            NotificationUtils.scheduleScanNotificationChangeConfiguration(reactContext, oldScheduleScanNotificationConfig, scheduleScanNotification);
         } catch(Exception e) {
 
         }
-//        AppUtils.enableBluetoothNotificationChangeConfiguration(oldEnableBluetoothNotificationConfig, enableBluetoothNotification);
+//        NotificationUtils.enableBluetoothNotificationChangeConfiguration(oldEnableBluetoothNotificationConfig, enableBluetoothNotification);
     }
 
 //    public WritableMap getConfig () {
@@ -245,10 +302,10 @@ public class TraceCovidModuleManager {
 
     public void setLanguage(String language) {
         AppPreferenceManager.getInstance(reactContext).setLanguage(language);
-        AppUtils.changeLanguageNotification(reactContext, language);
+        NotificationUtils.changeLanguageNotification(reactContext, language);
     }
 
     public void setContentNotify(String title, String content) {
-        AppUtils.changeServiceNotification(R.mipmap.icon_bluezone_service, title, content);
+        NotificationUtils.displayServiceNotification(reactContext, R.mipmap.icon_bluezone_service, title, content, null);
     }
 }

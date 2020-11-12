@@ -1,6 +1,5 @@
 package com.scan;
 
-import android.Manifest;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.app.Service;
@@ -24,7 +23,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.pm.PackageManager;
 import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.BatteryManager;
@@ -38,7 +36,6 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
-import androidx.core.content.ContextCompat;
 
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.google.firebase.analytics.FirebaseAnalytics;
@@ -48,6 +45,7 @@ import com.scan.database.AppDatabaseHelper;
 import com.scan.database.CacheDatabaseHelper;
 import com.scan.model.ScanConfig;
 import com.scan.notification.NotificationReceiver;
+import com.scan.notification.NotificationUtils;
 import com.scan.preference.AppPreferenceManager;
 
 import org.json.JSONException;
@@ -64,7 +62,6 @@ import java.util.TimerTask;
  */
 public class ServiceTraceCovid extends Service {
     // Context
-    public static ReactApplicationContext reactContext;
     public static TraceCovidModuleManager moduleManager;
 
     // Stop service
@@ -137,15 +134,18 @@ public class ServiceTraceCovid extends Service {
     // Bluetooth Gatt
     private BluetoothGatt mBluetoothGatt;
     private ConnectTask mConnectTask;
-    private long mLastTimeScanCallBack;
     private boolean mIsReport = false;
 
     private boolean bluetoothEnable = false;
     private boolean locationEnable = false;
-    private boolean permissonLocationEnable = false;
+    private boolean locationPermissonEnable = false;
     private boolean scanStatusError = false;
 
     final Handler handler = new Handler();
+
+    // Count Ibeacon
+    private int mCountBroadcastBeacon = 0;
+    private static final int COUNT_START_IBEACON = 2;
 
     @Nullable
     @Override
@@ -169,7 +169,7 @@ public class ServiceTraceCovid extends Service {
         writeLog("Start ServiceTraceCovid");
 
         // Khoi tao notification
-        AppUtils.startNotification(this, getApplicationContext());
+        NotificationUtils.startNotification(this, getApplicationContext());
 
         // Khoi tao Bluetooth
         initBluetooth();
@@ -179,38 +179,41 @@ public class ServiceTraceCovid extends Service {
 
         bluetoothEnable = AppUtils.isBluetoothEnable ();
         locationEnable = AppUtils.isLocationEnable(getApplicationContext());
-        permissonLocationEnable = AppUtils.isPermissonLocation(getApplicationContext());
-        scanStatusError = !bluetoothEnable || !locationEnable || !permissonLocationEnable;
+        locationPermissonEnable = AppUtils.isPermissonLocation(getApplicationContext());
+        scanStatusError = !bluetoothEnable || !locationEnable || !locationPermissonEnable;
 
         // Array
         mScanResultList = new ArrayList<>();
         mMacConnectList = new ArrayList<>();
 
-        Timer timer = new Timer();
-        TimerTask timerTask = new TimerTask() {
-            public void run() {
-                // use a handler to run a toast that shows the current timestamp
-                handler.post(new Runnable() {
-                    public void run() {
-                        boolean st = AppUtils.isPermissonLocation(getApplicationContext());
-                        if(st == permissonLocationEnable) {
-                            return;
-                        }
+        if(!locationPermissonEnable) {
+            final Timer locationPermissonTimer = new Timer();
+            final TimerTask locationPermissonTimerTask = new TimerTask() {
+                public void run() {
+                    handler.post(new Runnable() {
+                        public void run() {
+                            boolean st = AppUtils.isPermissonLocation(getApplicationContext());
+                            if(st) {
+                                locationPermissonTimer.cancel();
+                            }
 
-                        permissonLocationEnable = st;
-                        checkScanStatus();
-                    }
-                });
-            }
-        };
-        timer.schedule(timerTask, 10000, AppPreferenceManager.getInstance(getApplicationContext()).getConfigCheckIntervalRequestPermission(AppConstants.Config.DEFAULT_INTERVAL_CHECK_PERMISSON)); //
+                            if(st == locationPermissonEnable) {
+                                return;
+                            }
+
+                            locationPermissonEnable = st;
+                            checkScanStatus();
+                        }
+                    });
+                }
+            };
+            locationPermissonTimer.schedule(locationPermissonTimerTask, 10000, AppPreferenceManager.getInstance(getApplicationContext()).getConfigCheckIntervalRequestPermission(AppConstants.Config.DEFAULT_INTERVAL_CHECK_PERMISSON));
+        }
 
         // CongTM: Lap lich gui thong ke len analytic, cần chọn phương án sau 1 giờ lại bắn event hay là khi bật tặt bluetooth mới bắn event
         Timer timerAnalytics = new Timer();
-
         TimerTask timerAnalyticTask = new TimerTask() {
             public void run() {
-                // use a handler to run a toast that shows the current timestamp
                 handler.post(new Runnable() {
                     public void run() {
                         if(mBluetoothAdapter.isEnabled()) {
@@ -279,14 +282,9 @@ public class ServiceTraceCovid extends Service {
         isConfigScanDevices = AppPreferenceManager.getInstance(getApplicationContext()).getConfigScanDevices();
 
         // Lay cac bien thoi gian
-        mScanConfigBle = AppUtils.getConfigScan(reactContext, AppPreferenceManager.PreferenceConstants.CONFIG_SCAN_BLE);
-        mScanConfigBroadcastBle = AppUtils.getConfigScan(reactContext, AppPreferenceManager.PreferenceConstants.CONFIG_BROADCAST_BLE);
-        mScanConfigDevices = AppUtils.getConfigScan(reactContext, AppPreferenceManager.PreferenceConstants.CONFIG_SCAN_DEVICES);
-
-        // Log
-        writeLog("mScanConfigBle: " + mScanConfigBle.getDuration() + ":" + mScanConfigBle.getInterval());
-        writeLog("mScanConfigBroadcastBle: " + mScanConfigBroadcastBle.getDuration() + ":" + mScanConfigBroadcastBle.getInterval());
-        writeLog("mScanConfigDevices: " + mScanConfigDevices.getDuration() + ":" + mScanConfigDevices.getInterval());
+        mScanConfigBle = AppUtils.getConfigScan(getApplicationContext(), AppPreferenceManager.PreferenceConstants.CONFIG_SCAN_BLE);
+        mScanConfigBroadcastBle = AppUtils.getConfigScan(getApplicationContext(), AppPreferenceManager.PreferenceConstants.CONFIG_BROADCAST_BLE);
+        mScanConfigDevices = AppUtils.getConfigScan(getApplicationContext(), AppPreferenceManager.PreferenceConstants.CONFIG_SCAN_DEVICES);
     }
 
     /**
@@ -296,6 +294,9 @@ public class ServiceTraceCovid extends Service {
         // check
         if (intent != null) {
             int typeScheduler = intent.getIntExtra(EXTRA_SCHEDULER_TYPE, TYPE_SCHEDULER_NONE);
+
+            // Log
+            writeLog("initScheduler: type = " + typeScheduler + " mode = " + mModeScan);
 
             // Check type
             switch (typeScheduler) {
@@ -328,7 +329,7 @@ public class ServiceTraceCovid extends Service {
                         mStatusAdvertising = STATUS_SCAN_FINISH;
 
                         // Start lai ble
-                        startBroadCastBle();
+                        startBroadcastBle();
                     }
                     break;
                 case TYPE_SCHEDULER_BROADCAST_BLE_STOP:
@@ -467,16 +468,14 @@ public class ServiceTraceCovid extends Service {
     }
 
     /**
-     * Dat lich
+     * Init Alarm timer
      * @param typeScheduler
      * @param requestCode
      */
     private void initAlarmTimer(int typeScheduler, int requestCode, long intervalMillis) {
         Intent intentAlarm = new Intent(getApplicationContext(), ServiceTraceCovid.class);
         intentAlarm.putExtra(EXTRA_SCHEDULER_TYPE, typeScheduler);
-
-        // Dat lich
-        AppScheduler.schedule(getApplicationContext(), intentAlarm, requestCode, intervalMillis);
+        AppScheduler.scheduleAlarm(getApplicationContext(), intentAlarm, requestCode, intervalMillis);
     }
 
     /**
@@ -484,6 +483,9 @@ public class ServiceTraceCovid extends Service {
      * @param typeScheduler
      */
     private void callAlarmTimer(int typeScheduler) {
+        // Log
+        writeLog("callAlarmTimer: typeScheduler = " + typeScheduler);
+
         if (typeScheduler == TYPE_SCHEDULER_RESCAN_BLE) {
             initAlarmTimer(TYPE_SCHEDULER_RESCAN_BLE, TYPE_SCHEDULER_RESCAN_BLE, AppConstants.Config.DEFAULT_RESCAN_INTERVAL);
         } else if (mModeScan == MODE_SCAN_SCHEDULER) {
@@ -569,7 +571,7 @@ public class ServiceTraceCovid extends Service {
      */
     private void startAll() {
         // Start phat ra broacast cho máy khác tim kiếm
-        startBroadCastBle();
+        startBroadcastBle();
 
         // Start scan ble
         startScanBle();
@@ -579,17 +581,17 @@ public class ServiceTraceCovid extends Service {
     }
 
     /**
-     * Phat song BLE
+     * Broadcast BLE
      */
-    public void startBroadCastBle() {
+    public void startBroadcastBle() {
         try {
+            // Log
+            writeLog("startBroadCastBle status = " + mStatusAdvertising);
+
             // Check
             if (mBluetoothLeAdvertiser != null && mStatusAdvertising == STATUS_SCAN_FINISH) {
                 // Set lai status
                 mStatusAdvertising = STATUS_SCAN_SETUP;
-
-                // Log
-                writeLog("startBroadCastBle setup");
 
                 // Advertise build
                 AdvertiseSettings.Builder advertiseSettings = new AdvertiseSettings.Builder();
@@ -605,10 +607,17 @@ public class ServiceTraceCovid extends Service {
                 builder.setIncludeTxPowerLevel(false);
 
                 byte[] bluezoneId = BluezoneIdGenerator.getInstance(getApplicationContext()).getBluezoneId();
-
                 if (BluezoneIdUtils.isBluezoneIdValidate(bluezoneId)) {
+                    // Convert BluezoneId
+                    String blidString = AppUtils.convertBytesToHex(bluezoneId);
+
                     // Emit bluezoneId Change
-                    moduleManager.emitBluezoneIdChange(AppUtils.convertBytesToHex(bluezoneId));
+                    if (moduleManager != null) {
+                        moduleManager.emitBluezoneIdChange(blidString);
+                    }
+
+                    // Log
+                    writeLog("startBroadCastBle Blid = " + blidString);
                 }
 
                 // Add Manufactor
@@ -620,28 +629,23 @@ public class ServiceTraceCovid extends Service {
                     @Override
                     public void onStartSuccess(AdvertiseSettings settingsInEffect) {
                         super.onStartSuccess(settingsInEffect);
-
-                        // Set bien
                         mStatusAdvertising = STATUS_SCANNING;
-
-                        // Log
                         writeLog("Start: BluetoothLeAdvertiser : start : success");
                     }
 
                     @Override
                     public void onStartFailure(int errorCode) {
                         super.onStartFailure(errorCode);
-
-                        // Set bien
                         mStatusAdvertising = STATUS_SCAN_FINISH;
-
-                        // Log
                         writeLog("Start: BluetoothLeAdvertiser : start : fail : Code: " + errorCode);
                     }
                 };
 
-                // Start broadCast ble
+                // Start broadcast ble
                 mBluetoothLeAdvertiser.startAdvertising(advertiseSettings.build(), builder.build(), mAdvertiseCallback);
+
+                // Start brodcast ibeacon
+                startBroadcastBeacon();
 
                 // Init alarm stop
                 callAlarmTimer(TYPE_SCHEDULER_BROADCAST_BLE_STOP);
@@ -658,11 +662,48 @@ public class ServiceTraceCovid extends Service {
         try {
             // Check phat va stop
             if (mBluetoothLeAdvertiser != null && mAdvertiseCallback != null) {
+                // Log
+                writeLog("stopBroadcastBle");
+
                 mBluetoothLeAdvertiser.stopAdvertising(mAdvertiseCallback);
             }
+
+            // Stop iBeacon
+            stopBroadcastBeacon();
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Start iBeacon
+     */
+    private void startBroadcastBeacon() {
+        // Log
+        writeLog("startBroadcastBeacon: Mode = " + mModeScan + " mCountBroadcastBeacon = " + mCountBroadcastBeacon);
+
+        if (mModeScan == MODE_SCAN_FULL) {
+            mCountBroadcastBeacon = 0;
+            IbeaconUtils.startIbeacon(getApplicationContext());
+        } else {
+            mCountBroadcastBeacon++;
+            if (mCountBroadcastBeacon > COUNT_START_IBEACON) {
+                mCountBroadcastBeacon = 1;
+                IbeaconUtils.startIbeacon(getApplicationContext());
+            }
+        }
+    }
+
+    /**
+     * Stop broadcast Beacon
+     */
+    private void stopBroadcastBeacon() {
+        // Log
+        writeLog("stopBroadcastBeacon");
+
+        // Stop iBeacon
+        IbeaconUtils.stopIbeacon();
+
     }
 
     /**
@@ -670,15 +711,13 @@ public class ServiceTraceCovid extends Service {
      */
     public void startScanBle() {
         try {
+            // Log
+            writeLog("startScanBle status = " + mStatusScanBle);
+
             // Check
             if (mBluetoothLeScanner != null && mStatusScanBle == STATUS_SCAN_FINISH) {
                 // set status
                 mStatusScanBle = STATUS_SCAN_SETUP;
-
-                mLastTimeScanCallBack = System.currentTimeMillis();
-
-                // Log
-                writeLog("startScanBle setup");
 
                 // Build scan setting
                 ScanSettings.Builder scanSettings = new ScanSettings.Builder();
@@ -698,10 +737,6 @@ public class ServiceTraceCovid extends Service {
                 ScanFilter.Builder scanFilterIosManu = new ScanFilter.Builder();
                 scanFilterIosManu.setManufacturerData(AppConstants.DEFAUT_MANUFACTOR_IOS, AppConstants.DEFAUT_MANUFACTOR_BYTE_IOS);
 
-                // Build filter ios manufactor
-//                ScanFilter.Builder scanFilterIosManuX = new ScanFilter.Builder();
-//                scanFilterIosManuX.setManufacturerData(AppConstants.DEFAUT_MANUFACTOR_IOS, AppConstants.DEFAUT_MANUFACTOR_BYTE_IOS_X);
-
                 // Build filter Android
                 ScanFilter.Builder scanFilterAndroid = new ScanFilter.Builder();
                 scanFilterAndroid.setServiceUuid(AppUtils.BLE_UUID_ANDROID);
@@ -711,13 +746,15 @@ public class ServiceTraceCovid extends Service {
                 listFilter.add(scanFilterAndroid.build());
                 listFilter.add(scanFilterIos.build());
                 listFilter.add(scanFilterIosManu.build());
-//                listFilter.add(scanFilterIosManuX.build());
 
                 // Callback khi scan bluetooth
                 mScanCallback = new ScanCallback() {
                     @Override
                     public void onScanResult(int callbackType, ScanResult result) {
                         super.onScanResult(callbackType, result);
+                        // Log
+                        // writeLog("onScanResult");
+
                         mStatusScanBle = STATUS_SCANNING;
 
                         try {
@@ -775,7 +812,9 @@ public class ServiceTraceCovid extends Service {
                                     }
 
                                     // Notify
-                                    moduleManager.emit(AppUtils.convertBytesToHex(blidContact), "", "", result.getRssi(), platform, typeScan);
+                                    if (moduleManager != null) {
+                                        moduleManager.emit(AppUtils.convertBytesToHex(blidContact), "", "", result.getRssi(), platform, typeScan);
+                                    }
                                 }
                             }
                         } catch (Exception e) {
@@ -786,12 +825,14 @@ public class ServiceTraceCovid extends Service {
                     @Override
                     public void onBatchScanResults(List<ScanResult> results) {
                         super.onBatchScanResults(results);
-                        mStatusScanBle = STATUS_SCANNING;
-                        long now = System.currentTimeMillis();
+                        // Log
+                        writeLog("onBatchScanResults");
 
-                        // Check time last scan && now, if bluezoneId changed, stop and scan BLE again
-                        // if (!BluezoneIdUtils.isBluezoneIdChanged(getApplicationContext(), mLastTimeScanCallBack, now)) {
+                        mStatusScanBle = STATUS_SCANNING;
                         if (results != null && results.size() > 0) {
+                            // Log
+                            writeLog("onBatchScanResults count = " + results.size());
+
                             for (ScanResult result : results) {
                                 try {
                                     if (result != null) {
@@ -836,7 +877,9 @@ public class ServiceTraceCovid extends Service {
                                             }
 
                                             // Notify
-                                            moduleManager.emit(AppUtils.convertBytesToHex(blidContact), "", "", result.getRssi(), platform, typeScan);
+                                            if (moduleManager != null) {
+                                                moduleManager.emit(AppUtils.convertBytesToHex(blidContact), "", "", result.getRssi(), platform, typeScan);
+                                            }
                                         }
                                     }
                                 } catch (Exception e) {
@@ -853,19 +896,15 @@ public class ServiceTraceCovid extends Service {
                                 }
                             }
                         }
-//                        } else {
-//                            stopScanBle();
-//
-//                            // Đặt lịch stop
-//                            callAlarmTimer(TYPE_SCHEDULER_RESCAN_BLE);
-//                        }
                     }
 
                     @Override
                     public void onScanFailed(int errorCode) {
                         super.onScanFailed(errorCode);
-                        mStatusScanBle = STATUS_SCAN_FINISH;
+                        // Log
                         writeLog("startScanBle: fail : Code: " + errorCode);
+
+                        mStatusScanBle = STATUS_SCAN_FINISH;
                     }
                 };
 
@@ -1008,7 +1047,9 @@ public class ServiceTraceCovid extends Service {
                     // check
                     if (!TextUtils.isEmpty(nameRN) || !TextUtils.isEmpty(userIdRN)) {
                         // React native
-                        moduleManager.emitBlueTooth(userIdRN, nameRN, address, rssi, platform, type);
+                        if (moduleManager != null) {
+                            moduleManager.emitBlueTooth(userIdRN, nameRN, address, rssi, platform, type);
+                        }
                     }
                 }
 
@@ -1115,7 +1156,7 @@ public class ServiceTraceCovid extends Service {
                                 // Timer enable bluetooth => Not auto enable bluetooth
                                 // callAlarmTimer(TYPE_SCHEDULER_ENABLE_BLUETOOTH);
                                 bluetoothEnable = false;
-                                AppUtils.bluetoothChange(getApplicationContext(), bluetoothEnable);
+                                NotificationUtils.bluetoothChange(getApplicationContext(), bluetoothEnable);
 
                                 // CongTM: send Analytics
                                 sendAnalytics("OFF");
@@ -1135,7 +1176,7 @@ public class ServiceTraceCovid extends Service {
                                 // Log
                                 writeLog("Bluetooth : ON");
                                 bluetoothEnable = true;
-                                AppUtils.bluetoothChange(getApplicationContext(), bluetoothEnable);
+                                NotificationUtils.bluetoothChange(getApplicationContext(), bluetoothEnable);
 
                                 // init bluetooth
                                 initBluetooth();
@@ -1162,7 +1203,8 @@ public class ServiceTraceCovid extends Service {
      */
     private void writeLog(String log) {
         // Log
-        Log.e("Bluezone", log);
+        // Log.i("Bluezone", log);
+
         // Check
         if (isConfigLog) {
             AppUtils.writeLog(getApplicationContext(), log);
@@ -1243,7 +1285,10 @@ public class ServiceTraceCovid extends Service {
     }
 
     private void checkScanStatus() {
-        boolean st = !bluetoothEnable || !locationEnable || !permissonLocationEnable;
+        boolean st = !bluetoothEnable || !locationEnable || !locationPermissonEnable;
+
+        NotificationUtils.scanServiceChange(getApplicationContext(), bluetoothEnable, locationEnable, locationPermissonEnable);
+
         if(st == scanStatusError) {
             return;
         }
@@ -1251,13 +1296,13 @@ public class ServiceTraceCovid extends Service {
         scanStatusError = st;
         if(scanStatusError) {
             try {
-                AppUtils.scanStatusInactive(getApplicationContext());
+                NotificationUtils.scanServiceInactive(getApplicationContext());
             } catch (JSONException e) {
                 e.printStackTrace();
             }
         } else {
             try {
-                AppUtils.scanStatusActive(getApplicationContext());
+                NotificationUtils.scanServiceActive(getApplicationContext());
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -1386,7 +1431,9 @@ public class ServiceTraceCovid extends Service {
                                     AppDatabaseHelper.getInstance(getApplicationContext()).insertInfoTrace(bluezoneId, scanResult.getRssi(), 0);
 
                                     // Ghi ban len he thong
-                                    moduleManager.emit(AppUtils.convertBytesToHex(bluezoneId), "", "", scanResult.getRssi(), AppConstants.PLATFORM_IOS, 1);
+                                    if (moduleManager != null) {
+                                        moduleManager.emit(AppUtils.convertBytesToHex(bluezoneId), "", "", scanResult.getRssi(), AppConstants.PLATFORM_IOS, 1);
+                                    }
 
                                     // insert cache
                                     CacheDatabaseHelper.getInstance(getApplicationContext()).insertConnected(bluezoneId, gatt.getDevice().getAddress());
@@ -1398,13 +1445,6 @@ public class ServiceTraceCovid extends Service {
                                 gatt.disconnect();
                             }
                         }
-
-//                        @Override
-//                        public void onReadRemoteRssi(BluetoothGatt gatt, int rssi, int status) {
-//                            super.onReadRemoteRssi(gatt, rssi, status);
-//                            // lay rssi
-//                            mRssiConnect = rssi;
-//                        }
                     };
 
                     // Start

@@ -296,14 +296,14 @@ public class AppPreferenceManager extends AbstractPreferenceManager {
     }
     
     public void setScanNotification(
-            String bigTextVi,
-            String bigTextEn,
-            String subTextVi,
-            String subTextEn,
             String titleVi,
             String titleEn,
+            String bigTextVi,
+            String bigTextEn,
             String messageVi,
             String messageEn,
+            String subTextVi,
+            String subTextEn,
             String buttonTextVi,
             String buttonTextEn
     ) {
@@ -322,7 +322,7 @@ public class AppPreferenceManager extends AbstractPreferenceManager {
     public Map<String, String> getScanNotification() {
         Map<String, String> result = new HashMap<>();
         result.put("bigText", getString(PreferenceConstants.SCAN_NOTIFICATION_BIG_TEXT_VI, null));
-        result.put("bigTextEn", getString(PreferenceConstants.SCAN_NOTIFICATION_BIG_TEXT_VI, null));
+        result.put("bigTextEn", getString(PreferenceConstants.SCAN_NOTIFICATION_BIG_TEXT_EN, null));
         result.put("subText", getString(PreferenceConstants.SCAN_NOTIFICATION_SUB_TEXT_VI, null));
         result.put("subTextEn", getString(PreferenceConstants.SCAN_NOTIFICATION_SUB_TEXT_EN, null));
         result.put("title", getString(PreferenceConstants.SCAN_NOTIFICATION_TITLE_VI, null));
@@ -334,15 +334,93 @@ public class AppPreferenceManager extends AbstractPreferenceManager {
         return result;
     }
 
-    public void setScheduleScanNotification(
-            String bigTextVi,
-            String bigTextEn,
-            String subTextVi,
-            String subTextEn,
+    public void setLocationPermissonNotificationV2(
             String titleVi,
             String titleEn,
+            String bigTextVi,
+            String bigTextEn,
             String messageVi,
             String messageEn,
+            String subTextVi,
+            String subTextEn,
+            String buttonTextVi,
+            String buttonTextEn
+    ) {
+        putString(PreferenceConstants.LOCATION_PERMISSON_BIG_TEXT_VI_V2, bigTextVi);
+        putString(PreferenceConstants.LOCATION_PERMISSON_BIG_TEXT_EN_V2, bigTextEn);
+        putString(PreferenceConstants.LOCATION_PERMISSON_SUB_TEXT_VI_V2, subTextVi);
+        putString(PreferenceConstants.LOCATION_PERMISSON_SUB_TEXT_EN_V2, subTextEn);
+        putString(PreferenceConstants.LOCATION_PERMISSON_TITLE_VI_V2, titleVi);
+        putString(PreferenceConstants.LOCATION_PERMISSON_TITLE_EN_V2, titleEn);
+        putString(PreferenceConstants.LOCATION_PERMISSON_MESSAGE_VI_V2, messageVi);
+        putString(PreferenceConstants.LOCATION_PERMISSON_MESSAGE_EN_V2, messageEn);
+        putString(PreferenceConstants.LOCATION_PERMISSON_BUTTON_VI_V2, buttonTextVi);
+        putString(PreferenceConstants.LOCATION_PERMISSON_BUTTON_EN_V2, buttonTextEn);
+    }
+
+    public Map<String, String> getLocationPermissonNotificationV2() {
+        Map<String, String> result = new HashMap<>();
+        result.put("bigText", getString(PreferenceConstants.LOCATION_PERMISSON_BIG_TEXT_VI_V2, null));
+        result.put("bigTextEn", getString(PreferenceConstants.LOCATION_PERMISSON_BIG_TEXT_EN_V2, null));
+        result.put("subText", getString(PreferenceConstants.LOCATION_PERMISSON_SUB_TEXT_VI_V2, null));
+        result.put("subTextEn", getString(PreferenceConstants.LOCATION_PERMISSON_SUB_TEXT_EN_V2, null));
+        result.put("title", getString(PreferenceConstants.LOCATION_PERMISSON_TITLE_VI_V2, null));
+        result.put("titleEn", getString(PreferenceConstants.LOCATION_PERMISSON_TITLE_EN_V2, null));
+        result.put("message", getString(PreferenceConstants.LOCATION_PERMISSON_MESSAGE_VI_V2, null));
+        result.put("messageEn", getString(PreferenceConstants.LOCATION_PERMISSON_MESSAGE_EN_V2, null));
+        result.put("buttonText", getString(PreferenceConstants.LOCATION_PERMISSON_BUTTON_VI_V2, null));
+        result.put("buttonTextEn", getString(PreferenceConstants.LOCATION_PERMISSON_BUTTON_EN_V2, null));
+        return result;
+    }
+
+    public void setScanNotificationV2(
+            String titleVi,
+            String titleEn,
+            String bigTextVi,
+            String bigTextEn,
+            String messageVi,
+            String messageEn,
+            String subTextVi,
+            String subTextEn,
+            String buttonTextVi,
+            String buttonTextEn
+    ) {
+        putString(PreferenceConstants.SCAN_NOTIFICATION_BIG_TEXT_VI_V2, bigTextVi);
+        putString(PreferenceConstants.SCAN_NOTIFICATION_BIG_TEXT_EN_V2, bigTextEn);
+        putString(PreferenceConstants.SCAN_NOTIFICATION_SUB_TEXT_VI_V2, subTextVi);
+        putString(PreferenceConstants.SCAN_NOTIFICATION_SUB_TEXT_EN_V2, subTextEn);
+        putString(PreferenceConstants.SCAN_NOTIFICATION_TITLE_VI_V2, titleVi);
+        putString(PreferenceConstants.SCAN_NOTIFICATION_TITLE_EN_V2, titleEn);
+        putString(PreferenceConstants.SCAN_NOTIFICATION_MESSAGE_VI_V2, messageVi);
+        putString(PreferenceConstants.SCAN_NOTIFICATION_MESSAGE_EN_V2, messageEn);
+        putString(PreferenceConstants.SCAN_NOTIFICATION_BUTTON_VI_V2, buttonTextVi);
+        putString(PreferenceConstants.SCAN_NOTIFICATION_BUTTON_EN_V2, buttonTextEn);
+    }
+
+    public Map<String, String> getScanNotificationV2() {
+        Map<String, String> result = new HashMap<>();
+        result.put("bigText", getString(PreferenceConstants.SCAN_NOTIFICATION_BIG_TEXT_VI_V2, null));
+        result.put("bigTextEn", getString(PreferenceConstants.SCAN_NOTIFICATION_BIG_TEXT_EN_V2, null));
+        result.put("subText", getString(PreferenceConstants.SCAN_NOTIFICATION_SUB_TEXT_VI_V2, null));
+        result.put("subTextEn", getString(PreferenceConstants.SCAN_NOTIFICATION_SUB_TEXT_EN_V2, null));
+        result.put("title", getString(PreferenceConstants.SCAN_NOTIFICATION_TITLE_VI_V2, null));
+        result.put("titleEn", getString(PreferenceConstants.SCAN_NOTIFICATION_TITLE_EN_V2, null));
+        result.put("message", getString(PreferenceConstants.SCAN_NOTIFICATION_MESSAGE_VI_V2, null));
+        result.put("messageEn", getString(PreferenceConstants.SCAN_NOTIFICATION_MESSAGE_EN_V2, null));
+        result.put("buttonText", getString(PreferenceConstants.SCAN_NOTIFICATION_BUTTON_VI_V2, null));
+        result.put("buttonTextEn", getString(PreferenceConstants.SCAN_NOTIFICATION_BUTTON_EN_V2, null));
+        return result;
+    }
+
+    public void setScheduleScanNotification(
+            String titleVi,
+            String titleEn,
+            String bigTextVi,
+            String bigTextEn,
+            String messageVi,
+            String messageEn,
+            String subTextVi,
+            String subTextEn,
             String buttonTextVi,
             String buttonTextEn,
             String itemRepeat
@@ -364,7 +442,7 @@ public class AppPreferenceManager extends AbstractPreferenceManager {
         Map<String, String> result = new HashMap<>();
         result.put("itemRepeat", getString(PreferenceConstants.SCHEDULE_SCAN_NOTIFICATION_REPEAT, null));
         result.put("bigText", getString(PreferenceConstants.SCHEDULE_SCAN_NOTIFICATION_BIG_TEXT_VI, null));
-        result.put("bigTextEn", getString(PreferenceConstants.SCHEDULE_SCAN_NOTIFICATION_BIG_TEXT_VI, null));
+        result.put("bigTextEn", getString(PreferenceConstants.SCHEDULE_SCAN_NOTIFICATION_BIG_TEXT_EN, null));
         result.put("subText", getString(PreferenceConstants.SCHEDULE_SCAN_NOTIFICATION_SUB_TEXT_VI, null));
         result.put("subTextEn", getString(PreferenceConstants.SCHEDULE_SCAN_NOTIFICATION_SUB_TEXT_EN, null));
         result.put("title", getString(PreferenceConstants.SCHEDULE_SCAN_NOTIFICATION_TITLE_VI, null));
@@ -377,14 +455,14 @@ public class AppPreferenceManager extends AbstractPreferenceManager {
     }
 
     public void setEnableBluetoothNotification(
-            String bigTextVi,
-            String bigTextEn,
-            String subTextVi,
-            String subTextEn,
             String titleVi,
             String titleEn,
+            String bigTextVi,
+            String bigTextEn,
             String messageVi,
             String messageEn,
+            String subTextVi,
+            String subTextEn,
             String buttonTextVi,
             String buttonTextEn
     ) {
@@ -467,6 +545,19 @@ public class AppPreferenceManager extends AbstractPreferenceManager {
         public static final String TIME_AUTOMACTIC_ENABLE_BLUETOOTH = "time_automatic_enable_bluetooth";
 
         // Schedule Notification Content
+//        public static final String SERVICE_NOTIFICATION_BIG_TEXT_VI = "schedule_scan_notification_big_text_vi";
+//        public static final String SERVICE_NOTIFICATION_BIG_TEXT_EN = "schedule_scan_notification_big_text_en";
+//        public static final String SERVICE_NOTIFICATION_SUB_TEXT_VI = "schedule_scan_notification_sub_text_vi";
+//        public static final String SERVICE_NOTIFICATION_SUB_TEXT_EN = "schedule_scan_notification_sub_text_en";
+//        public static final String SERVICE_NOTIFICATION_TITLE_VI = "schedule_scan_notification_title_text_vi";
+//        public static final String SERVICE_NOTIFICATION_TITLE_EN = "schedule_scan_notification_title_text_en";
+//        public static final String SERVICE_NOTIFICATION_MESSAGE_VI = "schedule_scan_notification_message_vi";
+//        public static final String SERVICE_NOTIFICATION_MESSAGE_EN = "schedule_scan_notification_message_en";
+//        public static final String SERVICE_NOTIFICATION_REPEAT = "schedule_scan_notification_repeat";
+//        public static final String SERVICE_NOTIFICATION_BUTTON_VI = "schedule_scan_notification_button_vi";
+//        public static final String SERVICE_NOTIFICATION_BUTTON_EN = "schedule_scan_notification_button_en";
+
+        // Schedule Notification Content
         public static final String SCHEDULE_SCAN_NOTIFICATION_BIG_TEXT_VI = "schedule_scan_notification_big_text_vi";
         public static final String SCHEDULE_SCAN_NOTIFICATION_BIG_TEXT_EN = "schedule_scan_notification_big_text_en";
         public static final String SCHEDULE_SCAN_NOTIFICATION_SUB_TEXT_VI = "schedule_scan_notification_sub_text_vi";
@@ -490,6 +581,30 @@ public class AppPreferenceManager extends AbstractPreferenceManager {
         public static final String SCAN_NOTIFICATION_MESSAGE_EN = "scan_notification_message_en";
         public static final String SCAN_NOTIFICATION_BUTTON_VI = "scan_notification_button_vi";
         public static final String SCAN_NOTIFICATION_BUTTON_EN = "scan_notification_button_en";
+
+        // Location Permisson Notification Content Version 2
+        public static final String SCAN_NOTIFICATION_BIG_TEXT_VI_V2 = "scan_notification_big_text_vi_v2";
+        public static final String SCAN_NOTIFICATION_BIG_TEXT_EN_V2 = "scan_notification_big_text_en_v2";
+        public static final String SCAN_NOTIFICATION_SUB_TEXT_VI_V2 = "scan_notification_sub_text_vi_v2";
+        public static final String SCAN_NOTIFICATION_SUB_TEXT_EN_V2 = "scan_notification_sub_text_en_v2";
+        public static final String SCAN_NOTIFICATION_TITLE_VI_V2 = "scan_notification_title_text_vi_v2";
+        public static final String SCAN_NOTIFICATION_TITLE_EN_V2 = "scan_notification_title_text_en_v2";
+        public static final String SCAN_NOTIFICATION_MESSAGE_VI_V2 = "scan_notification_message_vi_v2";
+        public static final String SCAN_NOTIFICATION_MESSAGE_EN_V2 = "scan_notification_message_en_v2";
+        public static final String SCAN_NOTIFICATION_BUTTON_VI_V2 = "scan_notification_button_vi_v2";
+        public static final String SCAN_NOTIFICATION_BUTTON_EN_V2 = "scan_notification_button_en_v2";
+
+        // Notification Content Version 2
+        public static final String LOCATION_PERMISSON_BIG_TEXT_VI_V2 = "location_permisson_big_text_vi_v2";
+        public static final String LOCATION_PERMISSON_BIG_TEXT_EN_V2 = "location_permisson_big_text_en_v2";
+        public static final String LOCATION_PERMISSON_SUB_TEXT_VI_V2 = "location_permisson_sub_text_vi_v2";
+        public static final String LOCATION_PERMISSON_SUB_TEXT_EN_V2 = "location_permisson_sub_text_en_v2";
+        public static final String LOCATION_PERMISSON_TITLE_VI_V2 = "location_permisson_title_text_vi_v2";
+        public static final String LOCATION_PERMISSON_TITLE_EN_V2 = "location_permisson_title_text_en_v2";
+        public static final String LOCATION_PERMISSON_MESSAGE_VI_V2 = "location_permisson_message_vi_v2";
+        public static final String LOCATION_PERMISSON_MESSAGE_EN_V2 = "location_permisson_message_en_v2";
+        public static final String LOCATION_PERMISSON_BUTTON_VI_V2 = "location_permisson_button_vi_v2";
+        public static final String LOCATION_PERMISSON_BUTTON_EN_V2 = "location_permisson_button_en_v2";
 
         // Notification auto enable bluetooth
         public static final String ENABLE_BLUETOOTH_NOTIFICATION_BIG_TEXT_VI = "enable_bluetooth_notification_big_text_vi";

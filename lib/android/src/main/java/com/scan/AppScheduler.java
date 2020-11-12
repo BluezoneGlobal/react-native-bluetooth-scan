@@ -39,6 +39,27 @@ public class AppScheduler {
     }
 
     /**
+     * Scheduler
+     * @param context
+     * @param intentAlarm
+     * @param requestCode
+     * @param intervalMillis
+     */
+    public static void scheduleAlarm(Context context, Intent intentAlarm, int requestCode, long intervalMillis) {
+
+        // Pending
+        PendingIntent pendingIntent = PendingIntent.getService(context, requestCode, intentAlarm, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        // Tao Alarm
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+
+        // Time
+        long time = System.currentTimeMillis() + intervalMillis;
+        final AlarmManager.AlarmClockInfo alarmClockInfo = new AlarmManager.AlarmClockInfo(time, pendingIntent);
+        alarmManager.setAlarmClock(alarmClockInfo, pendingIntent);
+    }
+
+    /**
      * Dat lich vong lap, min cua moi vong lap la 60s
      * @param context
      * @param intentAlarm

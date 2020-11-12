@@ -38,7 +38,6 @@ public class TraceCovidModule extends ReactContextBaseJavaModule {
     public TraceCovidModule(ReactApplicationContext context) {
         super(context);
         reactContext = context;
-        ServiceTraceCovid.reactContext = context;
         this.manager = new TraceCovidModuleManager(context, this);
     }
 

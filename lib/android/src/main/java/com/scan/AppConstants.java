@@ -25,7 +25,7 @@ public class AppConstants {
         public static final String CONFIG_FILE_VALUE_OK = "1";
 
         // Config log file
-        public static final boolean IS_CONFIG_LOG_FILE = false;
+        public static final boolean IS_CONFIG_LOG_FILE = true;
 
         // Config log battery
         public static final boolean IS_CONFIG_LOG_BATTERY = false;
@@ -53,8 +53,6 @@ public class AppConstants {
 
         // Time insert
         public static final long TIME_DELAY_INSERT = 5 * 1000;
-        // Time backup
-        public static final long BACKUP_INTERVAL = 1 * 60 * 60 * 1000;
 
         // Timmer check permisson to create notification
         public static final long DEFAULT_INTERVAL_CHECK_PERMISSON = 2 * 60 * 1000;
@@ -82,7 +80,6 @@ public class AppConstants {
     public static final String BLE_UUID_ANDROID = "0000" + BLUEZONE_UUID + "-0000-1000-8000-00805F9B34FB";
     public static final String BLE_UUID_CHARECTIC = "0000" + BLUEZONE_UUID + "-73F5-4BC4-A12F-17D1AD07A689";
     public static final int DEFAUT_MANUFACTOR_IOS = 0x004c;
-    public static final byte[] DEFAUT_MANUFACTOR_BYTE_IOS_X = new byte[] {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -128, 0, 0, 0, 0, 0};
     public static final byte[] DEFAUT_MANUFACTOR_BYTE_IOS = new byte[] {1, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     public static final byte[] BLUEZONE_BYTE_NONE = new byte[] {0};
 
@@ -105,17 +102,4 @@ public class AppConstants {
     // PlatfromName
     public static final String PLATFORM_ANDROID = "Android";
     public static final String PLATFORM_IOS = "iOS";
-
-    // Backup
-    public static class Backup {
-        public static final String ROOT_FOLDER = "backup";
-        public static final String DATABASE_NAME = "app_db.db";         // File name DB trong điện thoại
-        public static final String FILE_NAME_DB = ".app_backup.db";      // File name DB ngoài thẻ nhớ
-        public static final String FILE_NAME_USER_ID = ".userid.txt";    // File name backup UserID
-        public static final String FILE_NAME_DATA = "data_trace.txt";    // Data trace put server
-        public static final String KEY_USER_ID = "user_id";              // Key backup UserID
-        public static final int DATA_USER_ID_COUNT = 2;
-        public static final int DATA_USER_ID_INDEX_KEY = 0;
-        public static final int DATA_USER_ID_INDEX_VALUE = 1;
-    }
 }
