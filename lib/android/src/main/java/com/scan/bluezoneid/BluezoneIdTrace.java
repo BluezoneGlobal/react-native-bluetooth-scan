@@ -4,6 +4,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.os.Environment;
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.scan.AppUtils;
 import com.scan.database.AppDatabaseHelper;
@@ -71,8 +72,9 @@ public class BluezoneIdTrace {
      */
     public static String exportTraceData(Context context) {
         String ret = "";
+        String fileName = String.valueOf(System.currentTimeMillis() / 1000) + ".txt";
 
-        File fileTrace = getPathTraceData(context, BluezoneIdConstants.TraceInfo.FILE_NAME_TRACE_DATA);
+        File fileTrace = getPathTraceData(context, fileName);
         if (fileTrace != null) {
             // delete old
             if (fileTrace.exists()) {
@@ -128,17 +130,101 @@ public class BluezoneIdTrace {
      * @param dayStartTrace
      * @return
      */
+//    public static String exportTraceData(Context context, int dayStartTrace) {
+//        String ret = "";
+//        String fileName = String.valueOf(System.currentTimeMillis() / 1000) + ".txt";
+//        File fileTrace = getPathTraceData(context, fileName);
+//
+//        Log.e("Bluezone1", "exportTraceData : " + dayStartTrace);
+//        if (fileTrace != null) {
+//            // delete old
+//            if (fileTrace.exists()) {
+//                Log.e("Bluezone1", "fileTrace Exists: True");
+//                fileTrace.delete();
+//            }
+//
+//            RandomAccessFile fi = null;
+//
+//            try {
+//                // create file
+//                if (fileTrace.createNewFile()) {
+//                    fi = new RandomAccessFile(fileTrace.getAbsolutePath(), "rw");
+//
+//                    // Call Time
+//                    long timeEnd = System.currentTimeMillis() - (dayStartTrace * BluezoneIdConstants.DAY_MILLISECONDS);
+//
+//                    // Get all cursor
+//                    Cursor cursor = AppDatabaseHelper.getInstance(context).getCursorData(timeEnd);
+//
+//                    Log.i("Bluezone1", "write-totalMemory-before:" + Runtime.getRuntime().totalMemory());
+//                    Log.i("Bluezone1", "write-freeMemory-before:" + Runtime.getRuntime().freeMemory());
+//
+//                    if (cursor != null) {
+//                        while (cursor.moveToNext()) {
+//                            try {
+//                                String retItem = AppUtils.convertBytesToHex(cursor.getBlob(AppDatabaseHelper.COLUMN_INDEX_BLID)) + "\t" +
+//                                        AppUtils.convertBytesToHex(cursor.getBlob(AppDatabaseHelper.COLUMN_INDEX_BLID_CONTACT)) + "\t" +
+//                                        cursor.getInt(AppDatabaseHelper.COLUMN_INDEX_RSSI) + "\t" +
+//                                        cursor.getLong(AppDatabaseHelper.COLUMN_INDEX_TIME) + "\n";
+//
+//                                fi.write(retItem.getBytes());
+//                            } catch (Exception e) {
+//                                Log.i("Bluezone1", "write-Exception While Exception");
+//                                Log.i("Bluezone1", e.toString());
+//                                e.printStackTrace();
+//                            }
+//                        }
+//                        Log.i("Bluezone1", "write-cusor: Finish");
+//                        ret = fileTrace.getAbsolutePath();
+//                        cursor.close();
+//                    } else {
+//                        Log.i("Bluezone1", "write-cursor: NULL");
+//                    }
+//
+//                    Log.i("Bluezone1", "write-totalMemory-after:" + Runtime.getRuntime().totalMemory());
+//                    Log.i("Bluezone1", "write-freeMemory-after:" + Runtime.getRuntime().freeMemory());
+//                } else {
+//                    Log.i("Bluezone1", "create File: FALSE");
+//                }
+//            } catch (Exception e) {
+//                Log.i("Bluezone1", "write-Exception Exception");
+//                Log.i("Bluezone1", e.toString());
+//                e.printStackTrace();
+//            } finally {
+//                if (fi != null) {
+//                    try {
+//                        fi.close();
+//                    } catch (IOException e) {
+//                        Log.i("Bluezone1", "write-Exception Exception 3333");
+//                        Log.i("Bluezone1", e.toString());
+//                        e.printStackTrace();
+//                    }
+//                }
+//            }
+//        } else {
+//            Log.e("Bluezone1", "fileTrace Patch: NULL");
+//        }
+//
+//        Log.e("Bluezone1", "exportTraceData Result : " + ret);
+//        return ret;
+//    }
+
     public static String exportTraceData(Context context, int dayStartTrace) {
         String ret = "";
-        File fileTrace = getPathTraceData(context, BluezoneIdConstants.TraceInfo.FILE_NAME_TRACE_DATA);
+        String fileName = String.valueOf(System.currentTimeMillis() / 1000) + ".txt";
+        File fileTrace = getPathTraceData(context, fileName);
 
+//         Log.e("Bluezone1", "exportTraceData : " + dayStartTrace);
         if (fileTrace != null) {
             // delete old
             if (fileTrace.exists()) {
+//                 Log.e("Bluezone1", "fileTrace Exists: True");
                 fileTrace.delete();
             }
 
             RandomAccessFile fi = null;
+
+            StringBuilder strData = new StringBuilder();
 
             try {
                 // create file
@@ -149,38 +235,62 @@ public class BluezoneIdTrace {
                     long timeEnd = System.currentTimeMillis() - (dayStartTrace * BluezoneIdConstants.DAY_MILLISECONDS);
 
                     // Get all cursor
-                    Cursor cursor = AppDatabaseHelper.getInstance(context).getCursorData(timeEnd);
+                    Cursor cursor = AppDatabaseHelper.getInstance(context).getCursorDataConvert(timeEnd);
+
+//                     Log.i("Bluezone1", "write-totalMemory-before:" + Runtime.getRuntime().totalMemory());
+//                     Log.i("Bluezone1", "write-freeMemory-before:" + Runtime.getRuntime().freeMemory());
+
                     if (cursor != null) {
                         while (cursor.moveToNext()) {
                             try {
-                                String retItem = AppUtils.convertBytesToHex(cursor.getBlob(AppDatabaseHelper.COLUMN_INDEX_BLID)) + "\t" +
-                                        AppUtils.convertBytesToHex(cursor.getBlob(AppDatabaseHelper.COLUMN_INDEX_BLID_CONTACT)) + "\t" +
-                                        cursor.getInt(AppDatabaseHelper.COLUMN_INDEX_RSSI) + "\t" +
-                                        cursor.getLong(AppDatabaseHelper.COLUMN_INDEX_TIME) + "\n";
-
-                                fi.write(retItem.getBytes());
+                                String retItem = cursor.getString(0) + "\t" +
+                                        cursor.getString(1) + "\t" +
+                                        cursor.getInt(2) + "\t" +
+                                        cursor.getLong(3) + "\n";
+                                strData.append(retItem);
                             } catch (Exception e) {
+//                                 Log.i("Bluezone1", "write-Exception While Exception");
+//                                 Log.i("Bluezone1", e.toString());
                                 e.printStackTrace();
                             }
                         }
 
-                        ret = fileTrace.getAbsolutePath();
+
+                        Log.i("Bluezone1", "write-cusor: Finish");
+
                         cursor.close();
+//                     } else {
+//                         Log.i("Bluezone1", "write-cursor: NULL");
                     }
+
+                    fi.write(strData.toString().getBytes());
+                    ret = fileTrace.getAbsolutePath();
+//
+//                     Log.i("Bluezone1", "write-totalMemory-after:" + Runtime.getRuntime().totalMemory());
+//                     Log.i("Bluezone1", "write-freeMemory-after:" + Runtime.getRuntime().freeMemory());
+//                 } else {
+//                     Log.i("Bluezone1", "create File: FALSE");
                 }
             } catch (Exception e) {
+//                 Log.i("Bluezone1", "write-Exception Exception");
+//                 Log.i("Bluezone1", e.toString());
                 e.printStackTrace();
             } finally {
                 if (fi != null) {
                     try {
                         fi.close();
                     } catch (IOException e) {
+//                         Log.i("Bluezone1", "write-Exception Exception 3333");
+//                         Log.i("Bluezone1", e.toString());
                         e.printStackTrace();
                     }
                 }
             }
+//         } else {
+//             Log.e("Bluezone1", "fileTrace Patch: NULL");
         }
 
+//         Log.e("Bluezone1", "exportTraceData Result : " + ret);
         return ret;
     }
 
